@@ -1,0 +1,96 @@
+-- Helium Rewards API Database Reset (Nuclear Option)
+-- ⚠️  WARNING: This will DELETE ALL DATA ⚠️
+-- Only use this for fresh installations or complete resets
+
+-- ============================================================================
+-- CONFIRMATION BLOCK
+-- ============================================================================
+DO $$
+BEGIN
+    RAISE NOTICE '⚠️  NUCLEAR DATABASE RESET STARTING ⚠️';
+    RAISE NOTICE 'This will permanently delete all Helium Rewards API data!';
+    RAISE NOTICE 'Tables to be dropped: devices, helium_rewards_daily, tracked_devices, helium_rewards_scrape_log';
+    RAISE NOTICE 'Views to be dropped: device_summary';
+    RAISE NOTICE 'Functions to be dropped: update_updated_at_column, ensure_device_exists';
+    RAISE NOTICE '';
+    RAISE NOTICE 'If you did not intend to run this, STOP THE QUERY NOW!';
+    RAISE NOTICE '';
+END $$;
+
+-- Pause to allow cancellation (remove this line to proceed automatically)
+-- SELECT pg_sleep(10);
+
+-- ============================================================================
+-- DROP VIEWS
+-- ============================================================================
+DROP VIEW IF EXISTS device_summary CASCADE;
+
+-- ============================================================================
+-- DROP TABLES (in reverse dependency order)
+-- ============================================================================
+DROP TABLE IF EXISTS helium_rewards_scrape_log CASCADE;
+DROP TABLE IF EXISTS tracked_devices CASCADE;
+DROP TABLE IF EXISTS helium_rewards_daily CASCADE;
+DROP TABLE IF EXISTS devices CASCADE;
+
+-- ============================================================================
+-- DROP FUNCTIONS
+-- ============================================================================
+DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
+DROP FUNCTION IF EXISTS ensure_device_exists() CASCADE;
+
+-- ============================================================================
+-- DROP CUSTOM TYPES (if any were created)
+-- ============================================================================
+-- DROP TYPE IF EXISTS reward_status CASCADE;
+
+-- ============================================================================
+-- CLEAN UP EXTENSIONS (optional - only if not used by other apps)
+-- ============================================================================
+-- Uncomment the next line only if no other applications use uuid-ossp
+-- DROP EXTENSION IF EXISTS "uuid-ossp" CASCADE;
+
+-- ============================================================================
+-- VERIFICATION
+-- ============================================================================
+DO $$
+DECLARE
+    table_count INTEGER;
+    function_count INTEGER;
+    view_count INTEGER;
+BEGIN
+    -- Check remaining tables
+    SELECT COUNT(*) INTO table_count
+    FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+    AND table_name IN ('devices', 'helium_rewards_daily', 'tracked_devices', 'helium_rewards_scrape_log');
+    
+    -- Check remaining functions
+    SELECT COUNT(*) INTO function_count
+    FROM information_schema.routines
+    WHERE routine_schema = 'public'
+    AND routine_name IN ('update_updated_at_column', 'ensure_device_exists');
+    
+    -- Check remaining views
+    SELECT COUNT(*) INTO view_count
+    FROM information_schema.views
+    WHERE table_schema = 'public'
+    AND table_name IN ('device_summary');
+    
+    IF table_count = 0 AND function_count = 0 AND view_count = 0 THEN
+        RAISE NOTICE '✅ NUCLEAR RESET COMPLETED SUCCESSFULLY';
+        RAISE NOTICE '🧹 All Helium Rewards API database objects have been removed';
+        RAISE NOTICE '🆕 Database is now clean and ready for fresh migration';
+        RAISE NOTICE '';
+        RAISE NOTICE '🚀 Next steps:';
+        RAISE NOTICE '   1. Run the migration script: \i utils/supa-sql-migrate.txt';
+        RAISE NOTICE '   2. Configure your environment variables';
+        RAISE NOTICE '   3. Test the setup: npm run test:local env';
+    ELSE
+        RAISE NOTICE '⚠️  INCOMPLETE RESET DETECTED';
+        RAISE NOTICE 'Remaining tables: %', table_count;
+        RAISE NOTICE 'Remaining functions: %', function_count;
+        RAISE NOTICE 'Remaining views: %', view_count;
+        RAISE NOTICE 'You may need to manually remove remaining objects';
+    END IF;
+END $$;

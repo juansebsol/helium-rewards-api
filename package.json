@@ -1,0 +1,53 @@
+{
+  "name": "helium-rewards-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Helium network device rewards scraper and API - extracts reward data from AWS S3 and provides RESTful API access",
+  "main": "index.js",
+  "scripts": {
+    "scrape:rewards": "node -r dotenv/config src/runRewardsScrape.js",
+    "scrape:scheduled": "node -r dotenv/config src/scheduledRewardsScrape.js",
+    "parse:rewards": "node src/parseRewardsData.js",
+    "upsert:rewards": "node -r dotenv/config src/upsertHeliumRewards.js",
+    "trigger:github": "node scripts/trigger-github-action.js",
+    "device:add": "node -r dotenv/config src/scheduledRewardsScrape.js add",
+    "device:remove": "node -r dotenv/config src/scheduledRewardsScrape.js remove",
+    "device:list": "node -r dotenv/config src/scheduledRewardsScrape.js list",
+    "test:local": "node -r dotenv/config test-local-scraping.js",
+    "test:scrape": "node -r dotenv/config test-local-scraping.js scrape",
+    "test:query": "node -r dotenv/config test-local-scraping.js query",
+    "test:scheduled": "node -r dotenv/config test-local-scraping.js scheduled",
+    "dev": "node -r dotenv/config src/runRewardsScrape.js",
+    "start": "node src/runRewardsScrape.js"
+  },
+  "keywords": [
+    "helium",
+    "rewards",
+    "blockchain",
+    "iot",
+    "mobile",
+    "api",
+    "scraper",
+    "aws",
+    "s3",
+    "protobuf"
+  ],
+  "author": "Development Team",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.450.0",
+    "@helium/proto": "^1.12.0",
+    "@supabase/supabase-js": "^2.52.0",
+    "bs58": "^5.0.0",
+    "dotenv": "^17.2.0",
+    "zlib": "^1.0.5"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

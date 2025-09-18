@@ -1,0 +1,247 @@
+-- Helium Rewards API Database Migration
+-- V1.0 - Initial schema for Helium device rewards tracking
+-- Run this in your Supabase SQL editor
+
+-- Enable necessary extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ============================================================================
+-- CORE TABLES
+-- ============================================================================
+
+-- Devices table (parent) - stores device registry
+CREATE TABLE IF NOT EXISTS devices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    device_key TEXT UNIQUE NOT NULL,
+    device_name TEXT,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Constraints
+    CONSTRAINT device_key_length CHECK (length(device_key) >= 50),
+    CONSTRAINT device_name_length CHECK (length(device_name) <= 255)
+);
+
+-- Daily rewards aggregation table (child)
+CREATE TABLE IF NOT EXISTS helium_rewards_daily (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    transaction_date DATE NOT NULL,
+    device_key TEXT NOT NULL,
+    device_id UUID REFERENCES devices(id) ON DELETE CASCADE,
+    reward_amount_dc BIGINT NOT NULL DEFAULT 0,
+    reward_type TEXT NOT NULL DEFAULT 'mobile_verified',
+    data_source TEXT NOT NULL,
+    raw_data JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Constraints
+    CONSTRAINT unique_daily_device_reward UNIQUE (transaction_date, device_id, reward_type),
+    CONSTRAINT reward_amount_positive CHECK (reward_amount_dc >= 0),
+    CONSTRAINT valid_reward_type CHECK (reward_type IN ('mobile_verified', 'iot_verified', 'other')),
+    CONSTRAINT valid_date_range CHECK (transaction_date >= '2020-01-01' AND transaction_date <= CURRENT_DATE + INTERVAL '1 day')
+);
+
+-- Tracked devices table - manages scheduled scraping
+CREATE TABLE IF NOT EXISTS tracked_devices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    device_key TEXT NOT NULL,
+    added_to_tracked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_scraped TIMESTAMP WITH TIME ZONE,
+    is_active BOOLEAN DEFAULT true,
+    notes TEXT,
+    scrape_frequency INTERVAL DEFAULT '1 day',
+    
+    -- Constraints
+    CONSTRAINT unique_tracked_device UNIQUE (device_key),
+    CONSTRAINT fk_tracked_device_key FOREIGN KEY (device_key) REFERENCES devices(device_key) ON DELETE CASCADE,
+    CONSTRAINT valid_scrape_frequency CHECK (scrape_frequency >= INTERVAL '1 hour')
+);
+
+-- Scrape audit log table
+CREATE TABLE IF NOT EXISTS helium_rewards_scrape_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    device_key TEXT,
+    scrape_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    status TEXT NOT NULL CHECK (status IN ('success', 'error', 'partial')),
+    records_found INTEGER DEFAULT 0,
+    records_processed INTEGER DEFAULT 0,
+    date_range_start DATE,
+    date_range_end DATE,
+    error_message TEXT,
+    execution_time_ms INTEGER,
+    data_source TEXT,
+    metadata JSONB,
+    
+    -- Constraints
+    CONSTRAINT records_non_negative CHECK (records_found >= 0 AND records_processed >= 0),
+    CONSTRAINT execution_time_positive CHECK (execution_time_ms IS NULL OR execution_time_ms >= 0)
+);
+
+-- ============================================================================
+-- INDEXES FOR PERFORMANCE
+-- ============================================================================
+
+-- Primary query indexes
+CREATE INDEX IF NOT EXISTS idx_rewards_device_date ON helium_rewards_daily(device_id, transaction_date DESC);
+CREATE INDEX IF NOT EXISTS idx_rewards_date_range ON helium_rewards_daily(transaction_date);
+CREATE INDEX IF NOT EXISTS idx_rewards_device_key ON helium_rewards_daily(device_key);
+CREATE INDEX IF NOT EXISTS idx_rewards_reward_type ON helium_rewards_daily(reward_type);
+
+-- Tracking indexes
+CREATE INDEX IF NOT EXISTS idx_tracked_devices_active ON tracked_devices(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_tracked_devices_last_scraped ON tracked_devices(last_scraped) WHERE is_active = true;
+
+-- Audit log indexes
+CREATE INDEX IF NOT EXISTS idx_scrape_log_device_date ON helium_rewards_scrape_log(device_key, scrape_date DESC);
+CREATE INDEX IF NOT EXISTS idx_scrape_log_status ON helium_rewards_scrape_log(status, scrape_date DESC);
+
+-- Device indexes
+CREATE INDEX IF NOT EXISTS idx_devices_active ON devices(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_devices_created_at ON devices(created_at DESC);
+
+-- ============================================================================
+-- FUNCTIONS AND TRIGGERS
+-- ============================================================================
+
+-- Function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Triggers for updated_at
+DROP TRIGGER IF EXISTS update_devices_updated_at ON devices;
+CREATE TRIGGER update_devices_updated_at
+    BEFORE UPDATE ON devices
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_rewards_updated_at ON helium_rewards_daily;
+CREATE TRIGGER update_rewards_updated_at
+    BEFORE UPDATE ON helium_rewards_daily
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Function to automatically create device when adding to tracking
+CREATE OR REPLACE FUNCTION ensure_device_exists()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if device exists, if not create it
+    INSERT INTO devices (device_key, device_name, description, is_active)
+    VALUES (
+        NEW.device_key,
+        'Device ' || substring(NEW.device_key from 1 for 12) || '...',
+        'Auto-created when added to tracking',
+        true
+    )
+    ON CONFLICT (device_key) DO NOTHING;
+    
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Trigger to ensure device exists when adding to tracking
+DROP TRIGGER IF EXISTS ensure_device_exists_trigger ON tracked_devices;
+CREATE TRIGGER ensure_device_exists_trigger
+    BEFORE INSERT ON tracked_devices
+    FOR EACH ROW
+    EXECUTE FUNCTION ensure_device_exists();
+
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ============================================================================
+
+-- Enable RLS on all tables
+ALTER TABLE devices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE helium_rewards_daily ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tracked_devices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE helium_rewards_scrape_log ENABLE ROW LEVEL SECURITY;
+
+-- Policies for service role (full access)
+CREATE POLICY "Service role full access on devices" ON devices
+    FOR ALL USING (auth.role() = 'service_role');
+
+CREATE POLICY "Service role full access on helium_rewards_daily" ON helium_rewards_daily
+    FOR ALL USING (auth.role() = 'service_role');
+
+CREATE POLICY "Service role full access on tracked_devices" ON tracked_devices
+    FOR ALL USING (auth.role() = 'service_role');
+
+CREATE POLICY "Service role full access on helium_rewards_scrape_log" ON helium_rewards_scrape_log
+    FOR ALL USING (auth.role() = 'service_role');
+
+-- Policies for anonymous users (read-only access to public data)
+CREATE POLICY "Anonymous read access on devices" ON devices
+    FOR SELECT USING (is_active = true);
+
+CREATE POLICY "Anonymous read access on helium_rewards_daily" ON helium_rewards_daily
+    FOR SELECT USING (true);
+
+-- ============================================================================
+-- SAMPLE DATA (OPTIONAL - REMOVE IN PRODUCTION)
+-- ============================================================================
+
+-- Insert sample device (uncomment for testing)
+-- INSERT INTO devices (device_key, device_name, description) VALUES 
+-- ('1trSusefVoBGpZF78uAGhqfNNi9jHeZwgfn8WnnGgGhzJJDo1Xer8uQDEryJ7Lu3XKH44M7qReXgGjegznjKa6AHMjJMeNQrcZJViYc7oqwoBHygSWiC5qVKyWgnjQDWsDgvphnRTkYKbZESJrRTMP89TBKz5zgnt4N8JKQaQPNMqv3A1579TpbF2xYM1gBhTDf5PFyNixg5tHKC4WZnJnBxivSEezPiHbewL2NPpsv5z1bEeH8NngitV6aNB3AmC7GjSwn6Zn2TCTubajt9CLmg6E5ap12MGKUHJFtJGnuYczVJ1o1pouqggU9XzEasW3MZFH9KVMo97ukPGv4yTpsG4UrDmQk23s34pfFLWH3sxi', 
+--  'Sample Helium Hotspot', 
+--  'Sample device for testing')
+-- ON CONFLICT (device_key) DO NOTHING;
+
+-- ============================================================================
+-- VIEWS FOR COMMON QUERIES
+-- ============================================================================
+
+-- View for device summary with recent activity
+CREATE OR REPLACE VIEW device_summary AS
+SELECT 
+    d.id,
+    d.device_key,
+    d.device_name,
+    d.description,
+    d.is_active,
+    d.created_at,
+    td.is_active as tracked,
+    td.last_scraped,
+    td.added_to_tracked_at,
+    COALESCE(recent_stats.total_rewards_30d, 0) as total_rewards_30d,
+    COALESCE(recent_stats.active_days_30d, 0) as active_days_30d,
+    recent_stats.last_reward_date
+FROM devices d
+LEFT JOIN tracked_devices td ON d.device_key = td.device_key
+LEFT JOIN (
+    SELECT 
+        device_id,
+        SUM(reward_amount_dc) as total_rewards_30d,
+        COUNT(*) as active_days_30d,
+        MAX(transaction_date) as last_reward_date
+    FROM helium_rewards_daily 
+    WHERE transaction_date >= CURRENT_DATE - INTERVAL '30 days'
+    GROUP BY device_id
+) recent_stats ON d.id = recent_stats.device_id;
+
+-- ============================================================================
+-- COMPLETION MESSAGE
+-- ============================================================================
+
+DO $$
+BEGIN
+    RAISE NOTICE '✅ Helium Rewards API database migration completed successfully!';
+    RAISE NOTICE '📊 Tables created: devices, helium_rewards_daily, tracked_devices, helium_rewards_scrape_log';
+    RAISE NOTICE '🔍 Indexes created for optimal query performance';
+    RAISE NOTICE '🔒 Row Level Security policies configured';
+    RAISE NOTICE '⚡ Triggers and functions set up for automation';
+    RAISE NOTICE '📈 Views created for common queries';
+    RAISE NOTICE '';
+    RAISE NOTICE '🚀 Your database is ready for the Helium Rewards API!';
+    RAISE NOTICE '💡 Next steps:';
+    RAISE NOTICE '   1. Configure your environment variables';
+    RAISE NOTICE '   2. Run: npm run test:local env';
+    RAISE NOTICE '   3. Add your first device: npm run device:add <DEVICE_KEY> "Device Name"';
+END $$;

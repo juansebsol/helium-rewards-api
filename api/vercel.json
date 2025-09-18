@@ -1,0 +1,21 @@
+{
+  "functions": {
+    "api/helium-rewards.js": {
+      "maxDuration": 30
+    },
+    "api/manage-devices.js": {
+      "maxDuration": 15
+    },
+    "api/trigger-scrape.js": {
+      "maxDuration": 10
+    }
+  },
+  "env": {
+    "AWS_REGION": "@aws_region",
+    "AWS_BUCKET": "@aws_bucket",
+    "SUPABASE_URL": "@supabase_url",
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
+    "GITHUB_TOKEN": "@github_token",
+    "GITHUB_REPOSITORY": "@github_repository"
+  }
+}

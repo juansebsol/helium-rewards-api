@@ -1,0 +1,205 @@
+name: Helium Rewards Scraper
+
+on:
+  # API triggered via repository_dispatch
+  repository_dispatch:
+    types: [helium-rewards-scrape]
+  
+  # Manual trigger with device key input
+  workflow_dispatch:
+    inputs:
+      device_key:
+        description: 'Helium device key to scrape'
+        required: true
+        type: string
+      days:
+        description: 'Number of days to look back (optional)'
+        required: false
+        type: number
+        default: 30
+      start_date:
+        description: 'Start date (YYYY-MM-DD, optional)'
+        required: false
+        type: string
+      end_date:
+        description: 'End date (YYYY-MM-DD, optional)'
+        required: false
+        type: string
+
+jobs:
+  scrape-single-device:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+    - name: 🚀 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: 🔧 Install dependencies
+      run: npm ci
+      
+    - name: 🎯 Extract parameters
+      id: params
+      run: |
+        # Extract device key from either manual input or API payload
+        if [ -n "${{ github.event.inputs.device_key }}" ]; then
+          # Manual trigger
+          echo "device_key=${{ github.event.inputs.device_key }}" >> $GITHUB_OUTPUT
+          echo "days=${{ github.event.inputs.days }}" >> $GITHUB_OUTPUT
+          echo "start_date=${{ github.event.inputs.start_date }}" >> $GITHUB_OUTPUT
+          echo "end_date=${{ github.event.inputs.end_date }}" >> $GITHUB_OUTPUT
+          echo "trigger_source=manual" >> $GITHUB_OUTPUT
+        else
+          # API trigger via repository_dispatch
+          echo "device_key=${{ github.event.client_payload.device_key }}" >> $GITHUB_OUTPUT
+          echo "days=${{ github.event.client_payload.days }}" >> $GITHUB_OUTPUT
+          echo "start_date=${{ github.event.client_payload.start_date }}" >> $GITHUB_OUTPUT
+          echo "end_date=${{ github.event.client_payload.end_date }}" >> $GITHUB_OUTPUT
+          echo "trigger_source=api" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: ✅ Validate parameters
+      run: |
+        if [ -z "${{ steps.params.outputs.device_key }}" ]; then
+          echo "❌ Error: device_key is required"
+          exit 1
+        fi
+        
+        # Validate device key format (basic check)
+        if [ ${#${{ steps.params.outputs.device_key }}} -lt 50 ]; then
+          echo "❌ Error: device_key appears to be too short (expected 100+ characters)"
+          exit 1
+        fi
+        
+        # Validate date format if provided
+        if [ -n "${{ steps.params.outputs.start_date }}" ]; then
+          if ! date -d "${{ steps.params.outputs.start_date }}" >/dev/null 2>&1; then
+            echo "❌ Error: Invalid start_date format (expected YYYY-MM-DD)"
+            exit 1
+          fi
+        fi
+        
+        if [ -n "${{ steps.params.outputs.end_date }}" ]; then
+          if ! date -d "${{ steps.params.outputs.end_date }}" >/dev/null 2>&1; then
+            echo "❌ Error: Invalid end_date format (expected YYYY-MM-DD)"
+            exit 1
+          fi
+        fi
+        
+        echo "✅ Parameters validated successfully"
+        
+    - name: 🎯 Set up environment
+      run: |
+        echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+        echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+        echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
+        echo "AWS_BUCKET=${{ secrets.AWS_BUCKET }}" >> $GITHUB_ENV
+        echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> $GITHUB_ENV
+        echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> $GITHUB_ENV
+        echo "DAYS_TO_AGGREGATE=${{ steps.params.outputs.days || '30' }}" >> $GITHUB_ENV
+        
+    - name: 📋 Show scraping parameters
+      run: |
+        echo "🎯 HELIUM REWARDS SCRAPING PARAMETERS"
+        echo "====================================="
+        echo "📱 Device Key: ${{ steps.params.outputs.device_key }}" | cut -c1-80
+        echo "📅 Days: ${{ steps.params.outputs.days || '30' }}"
+        echo "📆 Start Date: ${{ steps.params.outputs.start_date || 'auto' }}"
+        echo "📆 End Date: ${{ steps.params.outputs.end_date || 'auto' }}"
+        echo "🔄 Trigger Source: ${{ steps.params.outputs.trigger_source }}"
+        echo "⏰ Started at: $(date)"
+        echo "====================================="
+        
+    - name: 🚀 Run Helium rewards scraper
+      run: |
+        # Build command with parameters
+        CMD="npm run scrape:rewards \"${{ steps.params.outputs.device_key }}\""
+        
+        # Add date range if provided
+        if [ -n "${{ steps.params.outputs.start_date }}" ] && [ -n "${{ steps.params.outputs.end_date }}" ]; then
+          CMD="$CMD \"${{ steps.params.outputs.start_date }}\" \"${{ steps.params.outputs.end_date }}\""
+        fi
+        
+        echo "🔄 Executing: $CMD"
+        eval $CMD
+        
+    - name: 📊 Verify results
+      run: |
+        echo "🔍 Checking scraping results..."
+        
+        # Check if any downloads were created
+        if [ -d "downloads" ] && [ "$(ls -A downloads)" ]; then
+          echo "✅ Downloads directory contains files:"
+          ls -la downloads/
+        else
+          echo "⚠️ No download files found (this may be normal if no new data was available)"
+        fi
+        
+        # Test database connection and check recent entries
+        echo "🔍 Checking database for recent entries..."
+        node -e "
+          require('dotenv').config();
+          const { supabase } = require('./src/supabase');
+          
+          (async () => {
+            try {
+              const { data, error } = await supabase
+                .from('helium_rewards_scrape_log')
+                .select('*')
+                .eq('device_key', '${{ steps.params.outputs.device_key }}')
+                .order('scrape_date', { ascending: false })
+                .limit(1);
+              
+              if (error) {
+                console.log('⚠️ Could not check database:', error.message);
+              } else if (data && data.length > 0) {
+                const log = data[0];
+                console.log('✅ Latest scrape log entry:');
+                console.log('   Status:', log.status);
+                console.log('   Records found:', log.records_found);
+                console.log('   Records processed:', log.records_processed);
+                console.log('   Date:', log.scrape_date);
+              } else {
+                console.log('⚠️ No scrape log entries found for this device');
+              }
+            } catch (err) {
+              console.log('⚠️ Error checking database:', err.message);
+            }
+          })();
+        "
+        
+    - name: 📋 Upload artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: helium-rewards-scraper-${{ github.run_id }}
+        path: |
+          downloads/
+          logs/
+        retention-days: 7
+        
+    - name: 📊 Summary
+      if: always()
+      run: |
+        echo "🎉 Helium rewards scraping completed!"
+        echo "====================================="
+        echo "📱 Device: ${{ steps.params.outputs.device_key }}" | cut -c1-80
+        echo "📅 Days: ${{ steps.params.outputs.days || '30' }}"
+        echo "🔄 Trigger: ${{ steps.params.outputs.trigger_source }}"
+        echo "📁 Artifacts: Available for 7 days"
+        echo "⏰ Completed at: $(date)"
+        echo "====================================="
+        
+        # Show job status
+        if [ "${{ job.status }}" = "success" ]; then
+          echo "✅ Status: SUCCESS"
+        else
+          echo "❌ Status: FAILED"
+          echo "💡 Check the logs above for error details"
+        fi

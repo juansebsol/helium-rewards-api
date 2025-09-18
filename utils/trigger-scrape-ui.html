@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helium Rewards API - Scraping Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #FF6B35;
+        }
+        
+        .button {
+            background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .button.success {
+            background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
+        }
+        
+        .button.info {
+            background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%);
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #4caf50;
+        }
+        
+        .result.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #f44336;
+        }
+        
+        .result.info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #2196F3;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #FF6B35;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .rewards-display {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .rewards-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .summary-card .value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #FF6B35;
+        }
+        
+        .summary-card .label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .rewards-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .rewards-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .rewards-table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .rewards-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        
+        .rewards-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .api-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #ff9800;
+        }
+        
+        .api-info h3 {
+            color: #f57c00;
+            margin-bottom: 10px;
+        }
+        
+        .api-info code {
+            background: #e8e8e8;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .device-key {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            background: #f1f3f4;
+            padding: 8px;
+            border-radius: 4px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Helium Rewards API</h1>
+            <p>Scraping & Query Interface</p>
+        </div>
+        
+        <div class="content">
+            <!-- API Configuration -->
+            <div class="section">
+                <h2>🔧 API Configuration</h2>
+                <div class="form-group">
+                    <label for="apiUrl">API Base URL:</label>
+                    <input type="url" id="apiUrl" placeholder="https://your-api-domain.vercel.app" value="http://localhost:3000">
+                </div>
+            </div>
+            
+            <!-- Trigger Scraping -->
+            <div class="section">
+                <h2>🚀 Trigger Scraping</h2>
+                <div class="form-group">
+                    <label for="scrapeDeviceKey">Device Key:</label>
+                    <input type="text" id="scrapeDeviceKey" placeholder="1trSusefVoBGpZF78uAGhqfNNi9jHeZwgfn8WnnGgGhzJJDo1Xer8uQDEryJ7Lu3XKH44M7qReXgGjegznjKa6AHMjJMeNQrcZJViYc7oqwoBHygSWiC5qVKyWgnjQDWsDgvphnRTkYKbZESJrRTMP89TBKz5zgnt4N8JKQaQPNMqv3A1579TpbF2xYM1gBhTDf5PFyNixg5tHKC4WZnJnBxivSEezPiHbewL2NPpsv5z1bEeH8NngitV6aNB3AmC7GjSwn6Zn2TCTubajt9CLmg6E5ap12MGKUHJFtJGnuYczVJ1o1pouqggU9XzEasW3MZFH9KVMo97ukPGv4yTpsG4UrDmQk23s34pfFLWH3sxi">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="scrapeDays">Days to Look Back:</label>
+                        <input type="number" id="scrapeDays" value="30" min="1" max="365">
+                    </div>
+                    <div class="form-group">
+                        <label for="scrapeStartDate">Or Start Date:</label>
+                        <input type="date" id="scrapeStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="scrapeEndDate">End Date:</label>
+                        <input type="date" id="scrapeEndDate">
+                    </div>
+                </div>
+                
+                <button class="button" onclick="triggerScrape()" id="triggerBtn">🚀 Trigger GitHub Action</button>
+                <button class="button info" onclick="clearScrapeForm()">🧹 Clear Form</button>
+            </div>
+            
+            <!-- Query Rewards -->
+            <div class="section">
+                <h2>📊 Query Rewards Data</h2>
+                <div class="form-group">
+                    <label for="queryDeviceKey">Device Key:</label>
+                    <input type="text" id="queryDeviceKey" placeholder="Device key to query">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="queryDays">Days to Look Back:</label>
+                        <input type="number" id="queryDays" value="30" min="1" max="365">
+                    </div>
+                    <div class="form-group">
+                        <label for="queryStartDate">Or Start Date:</label>
+                        <input type="date" id="queryStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="queryEndDate">End Date:</label>
+                        <input type="date" id="queryEndDate">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="rewardType">Reward Type:</label>
+                    <select id="rewardType">
+                        <option value="all">All Types</option>
+                        <option value="mobile_verified">Mobile Verified</option>
+                        <option value="iot_verified">IoT Verified</option>
+                    </select>
+                </div>
+                
+                <button class="button success" onclick="queryRewards()" id="queryBtn">📊 Query Rewards</button>
+                <button class="button info" onclick="clearQueryForm()">🧹 Clear Form</button>
+                <button class="button info" onclick="copyFromScrapeForm()">📋 Copy from Scrape Form</button>
+            </div>
+            
+            <!-- Loading -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span id="loadingText">Processing...</span>
+            </div>
+            
+            <!-- Results -->
+            <div class="result" id="result"></div>
+            
+            <!-- Rewards Display -->
+            <div class="rewards-display" id="rewardsDisplay" style="display: none;">
+                <h3>📈 Rewards Summary</h3>
+                <div class="rewards-summary" id="rewardsSummary"></div>
+                
+                <h3>📋 Daily Rewards</h3>
+                <div class="rewards-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Day</th>
+                                <th>DC Rewards</th>
+                                <th>Formatted</th>
+                                <th>Entries</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rewardsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- API Information -->
+            <div class="api-info">
+                <h3>📡 API Usage</h3>
+                <p><strong>Trigger Scraping:</strong> <code>POST /api/trigger-scrape</code></p>
+                <p><strong>Query Rewards:</strong> <code>GET /api/helium-rewards?device_key=...&days=30</code></p>
+                <p><strong>Date Range Query:</strong> <code>GET /api/helium-rewards?device_key=...&start=2025-01-01&end=2025-01-31</code></p>
+                <p><strong>Reward Type Filter:</strong> <code>GET /api/helium-rewards?device_key=...&reward_type=mobile_verified</code></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function getApiUrl() {
+            return document.getElementById('apiUrl').value.replace(/\/$/, '');
+        }
+        
+        function showLoading(text = 'Processing...') {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('rewardsDisplay').style.display = 'none';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        function showResult(message, type = 'success') {
+            hideLoading();
+            const result = document.getElementById('result');
+            result.className = `result ${type}`;
+            result.innerHTML = message;
+            result.style.display = 'block';
+            
+            // Auto-hide after 10 seconds for success messages
+            if (type === 'success') {
+                setTimeout(() => {
+                    result.style.display = 'none';
+                }, 10000);
+            }
+        }
+        
+        async function triggerScrape() {
+            const deviceKey = document.getElementById('scrapeDeviceKey').value.trim();
+            const days = document.getElementById('scrapeDays').value;
+            const startDate = document.getElementById('scrapeStartDate').value;
+            const endDate = document.getElementById('scrapeEndDate').value;
+            
+            if (!deviceKey) {
+                showResult('Device key is required for scraping', 'error');
+                return;
+            }
+            
+            // Validate date range if provided
+            if ((startDate && !endDate) || (!startDate && endDate)) {
+                showResult('Both start and end dates must be provided if using date range', 'error');
+                return;
+            }
+            
+            showLoading('Triggering GitHub Action...');
+            
+            const payload = { device_key: deviceKey };
+            
+            if (startDate && endDate) {
+                payload.start_date = startDate;
+                payload.end_date = endDate;
+            } else if (days) {
+                payload.days = parseInt(days);
+            }
+            
+            try {
+                const response = await fetch(`${getApiUrl()}/api/trigger-scrape`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const details = data.details;
+                    showResult(`
+                        ✅ <strong>GitHub Action triggered successfully!</strong><br><br>
+                        📱 <strong>Device:</strong> ${details.device_key}<br>
+                        📅 <strong>Parameters:</strong> ${details.parameters.days ? `${details.parameters.days} days` : `${details.parameters.start_date} to ${details.parameters.end_date}`}<br>
+                        🔄 <strong>Status:</strong> ${details.status}<br>
+                        ⏰ <strong>Triggered:</strong> ${new Date(details.triggered_at).toLocaleString()}<br><br>
+                        💡 <strong>Check the Actions tab in your GitHub repository for progress:</strong><br>
+                        <code>https://github.com/${details.workflow}/actions</code>
+                    `, 'success');
+                } else {
+                    showResult(`❌ <strong>Failed to trigger scraping:</strong><br>${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ <strong>Network error:</strong><br>${error.message}`, 'error');
+            }
+        }
+        
+        async function queryRewards() {
+            const deviceKey = document.getElementById('queryDeviceKey').value.trim();
+            const days = document.getElementById('queryDays').value;
+            const startDate = document.getElementById('queryStartDate').value;
+            const endDate = document.getElementById('queryEndDate').value;
+            const rewardType = document.getElementById('rewardType').value;
+            
+            if (!deviceKey) {
+                showResult('Device key is required for querying', 'error');
+                return;
+            }
+            
+            // Validate date range if provided
+            if ((startDate && !endDate) || (!startDate && endDate)) {
+                showResult('Both start and end dates must be provided if using date range', 'error');
+                return;
+            }
+            
+            showLoading('Querying rewards data...');
+            
+            let url = `${getApiUrl()}/api/helium-rewards?device_key=${encodeURIComponent(deviceKey)}`;
+            
+            if (startDate && endDate) {
+                url += `&start=${startDate}&end=${endDate}`;
+            } else if (days) {
+                url += `&days=${days}`;
+            }
+            
+            if (rewardType !== 'all') {
+                url += `&reward_type=${rewardType}`;
+            }
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    displayRewards(data);
+                } else {
+                    showResult(`❌ <strong>Failed to query rewards:</strong><br>${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ <strong>Network error:</strong><br>${error.message}`, 'error');
+            }
+        }
+        
+        function displayRewards(data) {
+            hideLoading();
+            
+            const rewardsDisplay = document.getElementById('rewardsDisplay');
+            const summaryDiv = document.getElementById('rewardsSummary');
+            const tableBody = document.getElementById('rewardsTableBody');
+            
+            // Show summary
+            let summaryHtml = '';
+            if (data.summary) {
+                const s = data.summary;
+                summaryHtml = `
+                    <div class="summary-card">
+                        <div class="value">${s.total_dc_formatted || s.total_dc_rewards?.toLocaleString() || '0'}</div>
+                        <div class="label">Total DC Rewards</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="value">${s.active_days || 0}</div>
+                        <div class="label">Active Days</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="value">${s.average_daily_formatted || (s.average_daily_dc?.toLocaleString() || '0')}</div>
+                        <div class="label">Avg Daily DC</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="value">${s.uptime_percentage ? s.uptime_percentage + '%' : 'N/A'}</div>
+                        <div class="label">Uptime</div>
+                    </div>
+                `;
+            }
+            summaryDiv.innerHTML = summaryHtml;
+            
+            // Show daily data
+            let tableHtml = '';
+            if (data.data && data.data.length > 0) {
+                data.data.forEach(reward => {
+                    tableHtml += `
+                        <tr>
+                            <td>${reward.transaction_date}</td>
+                            <td>${reward.day_of_week || 'N/A'}</td>
+                            <td>${reward.reward_amount_dc.toLocaleString()}</td>
+                            <td>${reward.reward_amount_formatted || 'N/A'}</td>
+                            <td>${reward.reward_entries || 1}</td>
+                            <td>${reward.reward_type}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                tableHtml = '<tr><td colspan="6" style="text-align: center;">No rewards data found</td></tr>';
+            }
+            tableBody.innerHTML = tableHtml;
+            
+            rewardsDisplay.style.display = 'block';
+            
+            showResult(`
+                ✅ <strong>Query completed successfully!</strong><br><br>
+                📱 <strong>Device:</strong> ${data.device_name || 'Unknown'}<br>
+                📅 <strong>Period:</strong> ${data.query_parameters.start_date || 'Last ' + (data.query_parameters.days || 'All')} ${data.query_parameters.days ? 'days' : ''} ${data.query_parameters.end_date ? 'to ' + data.query_parameters.end_date : ''}<br>
+                📊 <strong>Records:</strong> ${data.count} daily entries<br>
+                🎯 <strong>Filter:</strong> ${data.query_parameters.reward_type}
+            `, 'info');
+        }
+        
+        function clearScrapeForm() {
+            document.getElementById('scrapeDeviceKey').value = '';
+            document.getElementById('scrapeDays').value = '30';
+            document.getElementById('scrapeStartDate').value = '';
+            document.getElementById('scrapeEndDate').value = '';
+        }
+        
+        function clearQueryForm() {
+            document.getElementById('queryDeviceKey').value = '';
+            document.getElementById('queryDays').value = '30';
+            document.getElementById('queryStartDate').value = '';
+            document.getElementById('queryEndDate').value = '';
+            document.getElementById('rewardType').value = 'all';
+        }
+        
+        function copyFromScrapeForm() {
+            const scrapeKey = document.getElementById('scrapeDeviceKey').value;
+            const scrapeDays = document.getElementById('scrapeDays').value;
+            const scrapeStart = document.getElementById('scrapeStartDate').value;
+            const scrapeEnd = document.getElementById('scrapeEndDate').value;
+            
+            document.getElementById('queryDeviceKey').value = scrapeKey;
+            document.getElementById('queryDays').value = scrapeDays;
+            document.getElementById('queryStartDate').value = scrapeStart;
+            document.getElementById('queryEndDate').value = scrapeEnd;
+        }
+        
+        // Auto-focus first input on page load
+        window.addEventListener('load', () => {
+            document.getElementById('scrapeDeviceKey').focus();
+        });
+    </script>
+</body>
+</html>
