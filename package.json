@@ -41,7 +41,6 @@
     "@supabase/supabase-js": "^2.52.0",
     "bs58": "^5.0.0",
     "dotenv": "^17.2.0",
-    "zlib": "^1.0.5"
   },
   "devDependencies": {
     "jest": "^29.7.0",
