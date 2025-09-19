@@ -1,21 +1,21 @@
-# 🚀 Helium Rewards API
+# Helium Rewards API
 
 > **Helium network device rewards scraper and API - extracts reward data from AWS S3 and provides RESTful API access**
 
 This project scrapes Helium device reward data from AWS S3 protobuf files, processes and aggregates the data, and provides a comprehensive REST API for querying rewards information. Built following the proven architecture pattern from the XNET device offload scraper.
 
-## 📋 What This Does
+## What This Does
 
 **Transform raw Helium blockchain data into actionable insights:**
 
 - **🔍 AWS S3 Data Extraction**: Automatically fetches and processes compressed protobuf files from Helium's foundation data bucket
-- **📊 Reward Aggregation**: Calculates daily DC (Data Credit) rewards with comprehensive statistics
-- **🗄️ Historical Tracking**: Maintains complete audit trails and historical data
-- **🔄 Automated Scheduling**: Daily automated scraping via GitHub Actions
-- **📡 REST API**: Query rewards data with flexible filtering and date ranges
-- **🎯 Device Management**: Easy API to add/remove devices from tracking list
+- **Reward Aggregation**: Calculates daily DC (Data Credit) rewards with comprehensive statistics
+- **Historical Tracking**: Maintains complete audit trails and historical data
+- **Automated Scheduling**: Daily automated scraping via GitHub Actions
+- **REST API**: Query rewards data with flexible filtering and date ranges
+- **Device Management**: Easy API to add/remove devices from tracking list
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 ### **Core Components**
 ```
@@ -44,7 +44,7 @@ AWS S3 Bucket → Protobuf Decoder → Data Aggregator → Supabase Database →
 - **`tracked_devices`** - Scheduled scraping configuration
 - **`helium_rewards_scrape_log`** - Complete audit trail
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. **Clone and Install**
 ```bash
@@ -209,7 +209,7 @@ GET /api/helium-rewards?device_key=...&reward_type=mobile_verified
    - Scrapes all devices in your tracking list
    - View progress in Actions tab
 
-## 🎯 Web Interface
+## Web Interface
 
 ### **Device Management UI**
 Open `utils/manage-devices-ui.html` in your browser for a user-friendly interface to:
@@ -288,7 +288,7 @@ npm run test:scrape device-key 3  # 3 days only
 npm run test:query device-key 7   # Query existing data
 ```
 
-## 🚀 Advanced Usage
+## Advanced Usage
 
 ### **Custom Date Ranges**
 ```bash
@@ -332,54 +332,3 @@ response = requests.get('https://your-api.vercel.app/api/helium-rewards', {
 data = response.json()
 print(f"Total DC: {data['summary']['total_dc_rewards']}")
 ```
-
-## 🔒 Security
-
-### **API Security**
-- CORS configured for specific origins
-- Rate limiting via Vercel
-- Input validation on all endpoints
-- No sensitive data in API responses
-
-### **Database Security**
-- Row Level Security (RLS) enabled
-- Service role key for backend operations
-- Encrypted connections (SSL/TLS)
-- Regular backup and monitoring
-
-### **AWS Security**
-- Read-only S3 permissions
-- Requester-pays bucket access
-- IAM roles with least privilege
-- Encrypted data in transit
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes following the existing patterns
-4. Test thoroughly: `npm run test:local all`
-5. Commit with clear messages: `git commit -m 'Add amazing feature'`
-6. Push to your branch: `git push origin feature/amazing-feature`
-7. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the ISC License - see the package.json for details.
-
-## 🙏 Acknowledgments
-
-- **Helium Foundation** for providing open access to blockchain data
-- **XNET Project** for the original scraper architecture pattern
-- **Supabase** for excellent PostgreSQL hosting
-- **Vercel** for seamless serverless deployment
-
----
-
-## 📞 Support
-
-- **Documentation**: Check the `docs/` folder for detailed guides
-- **Issues**: Open GitHub issues for bugs or feature requests
-- **Discussions**: Use GitHub Discussions for questions
-
-**Happy scraping! 🚀**
