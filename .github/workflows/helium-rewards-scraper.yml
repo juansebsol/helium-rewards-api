@@ -72,8 +72,10 @@ jobs:
         fi
         
         # Validate device key format (basic check)
-        if [ ${#${{ steps.params.outputs.device_key }}} -lt 50 ]; then
+        DEVICE_KEY="${{ steps.params.outputs.device_key }}"
+        if [ ${#DEVICE_KEY} -lt 50 ]; then
           echo "❌ Error: device_key appears to be too short (expected 100+ characters)"
+          echo "❌ Received device_key length: ${#DEVICE_KEY}"
           exit 1
         fi
         

@@ -346,6 +346,7 @@
                 <button class="button success" onclick="queryRewards()" id="queryBtn">📊 Query Rewards</button>
                 <button class="button info" onclick="clearQueryForm()">🧹 Clear Form</button>
                 <button class="button info" onclick="copyFromScrapeForm()">📋 Copy from Scrape Form</button>
+                <button class="button" onclick="checkRecentScrapes()">🔍 Check Recent Scrapes</button>
             </div>
             
             <!-- Loading -->
@@ -470,11 +471,15 @@
                         📅 <strong>Parameters:</strong> ${details.parameters.days ? `${details.parameters.days} days` : `${details.parameters.start_date} to ${details.parameters.end_date}`}<br>
                         🔄 <strong>Status:</strong> ${details.status}<br>
                         ⏰ <strong>Triggered:</strong> ${new Date(details.triggered_at).toLocaleString()}<br><br>
-                        💡 <strong>Check the Actions tab in your GitHub repository for progress:</strong><br>
-                        <code>https://github.com/${details.workflow}/actions</code>
+                        💡 <strong>Monitor progress at:</strong><br>
+                        <a href="https://github.com/${details.workflow}/actions" target="_blank" style="color: #2196F3;">https://github.com/${details.workflow}/actions</a><br><br>
+                        🔄 <strong>The workflow is now running...</strong><br>
+                        📋 Check the link above for real-time progress and results<br>
+                        ⏰ Scraping typically takes 2-5 minutes to complete
                     `, 'success');
                 } else {
-                    showResult(`❌ <strong>Failed to trigger scraping:</strong><br>${data.error}`, 'error');
+                    const errorDetails = data.details ? `<br><br><strong>Details:</strong><br><pre>${JSON.stringify(data.details, null, 2)}</pre>` : '';
+                    showResult(`❌ <strong>Failed to trigger scraping:</strong><br>${data.error}${errorDetails}`, 'error');
                 }
             } catch (error) {
                 showResult(`❌ <strong>Network error:</strong><br>${error.message}`, 'error');
@@ -615,6 +620,47 @@
             document.getElementById('queryDays').value = scrapeDays;
             document.getElementById('queryStartDate').value = scrapeStart;
             document.getElementById('queryEndDate').value = scrapeEnd;
+        }
+        
+        async function checkRecentScrapes() {
+            const deviceKey = document.getElementById('queryDeviceKey').value.trim() || 
+                            document.getElementById('scrapeDeviceKey').value.trim();
+            
+            if (!deviceKey) {
+                showResult('Please enter a device key first', 'error');
+                return;
+            }
+            
+            showLoading('Checking recent scrapes...');
+            
+            try {
+                // This would call a hypothetical API endpoint to check scrape logs
+                // For now, we'll show a helpful message
+                hideLoading();
+                showResult(`
+                    🔍 <strong>How to check if your scrape completed:</strong><br><br>
+                    
+                    <strong>Method 1: GitHub Actions</strong><br>
+                    • Go to your repository's Actions tab<br>
+                    • Look for "Helium Rewards Scraper" workflows<br>
+                    • Check the status (✅ success, ❌ failed, 🟡 running)<br><br>
+                    
+                    <strong>Method 2: Query Rewards Data</strong><br>
+                    • Use the "Query Rewards" section above<br>
+                    • If data is returned, the scrape worked<br>
+                    • Recent scrapes will show in the results<br><br>
+                    
+                    <strong>Method 3: Database Check</strong><br>
+                    • Successful scrapes create entries in helium_rewards_daily table<br>
+                    • Check your Supabase dashboard for recent entries<br><br>
+                    
+                    <strong>Device:</strong> ${deviceKey.substring(0, 60)}...<br>
+                    <strong>Tip:</strong> Scraping usually takes 2-5 minutes to complete
+                `, 'info');
+                
+            } catch (error) {
+                showResult(`❌ <strong>Error:</strong><br>${error.message}`, 'error');
+            }
         }
         
         // Auto-focus first input on page load
