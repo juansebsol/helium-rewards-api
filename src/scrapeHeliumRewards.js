@@ -193,6 +193,7 @@ async function scrapeHeliumRewards(deviceKey, customDateRange = null) {
   
   const mobileRewards = [];
   let totalFilesProcessed = 0;
+  let targetDateFiles = []; // Declare outside try block to fix scope issue
   
   try {
     // Get all files in the prefix
@@ -224,7 +225,7 @@ async function scrapeHeliumRewards(deviceKey, customDateRange = null) {
     totalFilesProcessed = files.length;
     
     // Filter for target date range files
-    const targetDateFiles = files
+    targetDateFiles = files
       .map(file => {
         const timestampMatch = file.match(/\.(\d{13})\.gz$/);
         const timestamp = timestampMatch ? parseInt(timestampMatch[1]) : 0;
@@ -325,6 +326,11 @@ async function scrapeHeliumRewards(deviceKey, customDateRange = null) {
   console.log(`💰 Total DC Rewards: ${formatNumber(totalRewards)} (${formatDC(totalRewards)})`);
   console.log(`📁 Files Processed: ${totalFilesProcessed}`);
   console.log(`📅 Date Range: ${startDate.toISOString().split('T')[0]} → ${actualEndDate.toISOString().split('T')[0]}`);
+  
+  // Debug logging for scope issues
+  console.log(`🔍 Debug: targetDateFiles defined: ${typeof targetDateFiles !== 'undefined'}`);
+  console.log(`🔍 Debug: targetDateFiles length: ${targetDateFiles ? targetDateFiles.length : 'undefined'}`);
+  console.log(`🔍 Debug: mobileRewards length: ${mobileRewards.length}`);
   
   return {
     deviceKey,
