@@ -332,3 +332,58 @@ response = requests.get('https://your-api.vercel.app/api/helium-rewards', {
 data = response.json()
 print(f"Total DC: {data['summary']['total_dc_rewards']}")
 ```
+
+## HNT Rate Endpoint
+
+### GET /api/hnt-rate
+Fetch daily HNT/USD price at exactly 00:00:00 UTC per day and return per-day entries. Useful for mapping DC to USD/HNT downstream.
+
+- Parameters (query):
+  - `days` (integer): Look back N days ending today (UTC). Max 365. Mutually exclusive with `start`/`end`.
+  - `start` (YYYY-MM-DD): Start date (UTC midnight). Must be used with `end`.
+  - `end` (YYYY-MM-DD): End date (UTC midnight). Must be used with `start`.
+  - `feed_id` (optional): Override default Pyth HNT/USD price feed ID.
+
+- Behavior:
+  - Queries Pyth benchmarks API at 00:00:00 UTC for each day.
+  - If the midnight price is not available, the day is returned with `status: "missing"` and no price values.
+  - No fallback to other timestamps.
+  - Read-only; no database writes.
+
+- Response shape:
+```
+{
+  "range": { "start": "YYYY-MM-DD", "end": "YYYY-MM-DD", "days": 30 | null },
+  "count": <number_of_days>,
+  "data": [
+    {
+      "date": "YYYY-MM-DD",
+      "status": "ok" | "missing",
+      "hnt_usd_price": 2.51548394 | null,
+      "ema_usd_price": 2.52210264 | null,
+      "pyth": {
+        "feed_id": "649fdd7e...339756",
+        "url": "https://benchmarks.pyth.network/...",
+        "metadata": { /* Pyth metadata if present */ }
+      }
+    }
+  ]
+}
+```
+
+- Examples:
+```bash
+# Last 30 days (UTC)
+curl "https://<your-vercel-app>/api/hnt-rate?days=30"
+
+# Specific range (UTC)
+curl "https://<your-vercel-app>/api/hnt-rate?start=2025-09-01&end=2025-09-21"
+
+# Override Pyth feed id (optional)
+curl "https://<your-vercel-app>/api/hnt-rate?days=7&feed_id=649fdd7ec08e8e2a20f425729854e90293dcbe2376abc47197a14da6ff339756"
+```
+
+- Notes:
+  - Default feed id can be overridden via `PYTH_HNT_USD_FEED_ID` env var.
+  - Range is capped to ≤365 days.
+  - The endpoint is stateless and does not require any secrets.
