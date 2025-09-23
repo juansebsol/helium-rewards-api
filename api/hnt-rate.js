@@ -1,7 +1,7 @@
 // api/hnt-rate.js
 // GET /api/hnt-rate?days=30
 // GET /api/hnt-rate?start=YYYY-MM-DD&end=YYYY-MM-DD
-// Computes DC→HNT per day using HNT/USD from Pyth at exactly 00:00:00 UTC
+// Fetches HNT/USD from Pyth at exactly 00:00:00 UTC per day.
 // If midnight price is not available, the day is returned with status: 'missing'
 
 const DEFAULT_PYTH_HNT_USD_FEED_ID = process.env.PYTH_HNT_USD_FEED_ID || '649fdd7ec08e8e2a20f425729854e90293dcbe2376abc47197a14da6ff339756';
@@ -93,18 +93,11 @@ module.exports = async (req, res) => {
         status = 'missing';
       }
 
-      // Compute DC→HNT only when we have midnight price
-      let dcToHnt = null;
-      if (status === 'ok' && hntUsd && hntUsd > 0) {
-        dcToHnt = 0.00001 / hntUsd; // 1 DC = $0.00001
-      }
-
       results.push({
         date: dateStr,
         status,
         hnt_usd_price: hntUsd,
         ema_usd_price: emaUsd,
-        dc_to_hnt_rate: dcToHnt,
         pyth: {
           feed_id: feedId,
           url,
