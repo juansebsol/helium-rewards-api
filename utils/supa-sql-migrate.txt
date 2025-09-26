@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS helium_rewards_daily (
     device_key TEXT NOT NULL,
     device_id UUID REFERENCES devices(id) ON DELETE CASCADE,
     reward_amount_dc BIGINT NOT NULL DEFAULT 0,
+    base_poc_reward BIGINT DEFAULT 0,
+    boosted_poc_reward BIGINT DEFAULT 0,
+    total_poc_reward BIGINT DEFAULT 0,
     reward_type TEXT NOT NULL DEFAULT 'mobile_verified',
     data_source TEXT NOT NULL,
     raw_data JSONB,
@@ -40,6 +43,10 @@ CREATE TABLE IF NOT EXISTS helium_rewards_daily (
     -- Constraints
     CONSTRAINT unique_daily_device_reward UNIQUE (transaction_date, device_id, reward_type),
     CONSTRAINT reward_amount_positive CHECK (reward_amount_dc >= 0),
+    CONSTRAINT base_poc_reward_positive CHECK (base_poc_reward >= 0),
+    CONSTRAINT boosted_poc_reward_positive CHECK (boosted_poc_reward >= 0),
+    CONSTRAINT total_poc_reward_positive CHECK (total_poc_reward >= 0),
+    CONSTRAINT total_poc_reward_sum CHECK (total_poc_reward = base_poc_reward + boosted_poc_reward),
     CONSTRAINT valid_reward_type CHECK (reward_type IN ('mobile_verified', 'iot_verified', 'other')),
     CONSTRAINT valid_date_range CHECK (transaction_date >= '2020-01-01' AND transaction_date <= CURRENT_DATE + INTERVAL '1 day')
 );
@@ -89,6 +96,11 @@ CREATE INDEX IF NOT EXISTS idx_rewards_device_date ON helium_rewards_daily(devic
 CREATE INDEX IF NOT EXISTS idx_rewards_date_range ON helium_rewards_daily(transaction_date);
 CREATE INDEX IF NOT EXISTS idx_rewards_device_key ON helium_rewards_daily(device_key);
 CREATE INDEX IF NOT EXISTS idx_rewards_reward_type ON helium_rewards_daily(reward_type);
+
+-- PoC reward indexes for performance
+CREATE INDEX IF NOT EXISTS idx_rewards_base_poc ON helium_rewards_daily(base_poc_reward) WHERE base_poc_reward > 0;
+CREATE INDEX IF NOT EXISTS idx_rewards_boosted_poc ON helium_rewards_daily(boosted_poc_reward) WHERE boosted_poc_reward > 0;
+CREATE INDEX IF NOT EXISTS idx_rewards_total_poc ON helium_rewards_daily(total_poc_reward) WHERE total_poc_reward > 0;
 
 -- Tracking indexes
 CREATE INDEX IF NOT EXISTS idx_tracked_devices_active ON tracked_devices(is_active) WHERE is_active = true;
@@ -198,7 +210,7 @@ CREATE POLICY "Anonymous read access on helium_rewards_daily" ON helium_rewards_
 -- VIEWS FOR COMMON QUERIES
 -- ============================================================================
 
--- View for device summary with recent activity
+-- View for device summary with recent activity (includes PoC rewards)
 CREATE OR REPLACE VIEW device_summary AS
 SELECT 
     d.id,
@@ -211,6 +223,8 @@ SELECT
     td.last_scraped,
     td.added_to_tracked_at,
     COALESCE(recent_stats.total_rewards_30d, 0) as total_rewards_30d,
+    COALESCE(recent_stats.total_dc_rewards_30d, 0) as total_dc_rewards_30d,
+    COALESCE(recent_stats.total_poc_rewards_30d, 0) as total_poc_rewards_30d,
     COALESCE(recent_stats.active_days_30d, 0) as active_days_30d,
     recent_stats.last_reward_date
 FROM devices d
@@ -219,6 +233,8 @@ LEFT JOIN (
     SELECT 
         device_id,
         SUM(reward_amount_dc) as total_rewards_30d,
+        SUM(reward_amount_dc) as total_dc_rewards_30d,
+        SUM(total_poc_reward) as total_poc_rewards_30d,
         COUNT(*) as active_days_30d,
         MAX(transaction_date) as last_reward_date
     FROM helium_rewards_daily 
@@ -234,14 +250,16 @@ DO $$
 BEGIN
     RAISE NOTICE '✅ Helium Rewards API database migration completed successfully!';
     RAISE NOTICE '📊 Tables created: devices, helium_rewards_daily, tracked_devices, helium_rewards_scrape_log';
-    RAISE NOTICE '🔍 Indexes created for optimal query performance';
+    RAISE NOTICE '💎 PoC rewards fields added: base_poc_reward, boosted_poc_reward, total_poc_reward';
+    RAISE NOTICE '🔍 Indexes created for optimal query performance (including PoC rewards)';
     RAISE NOTICE '🔒 Row Level Security policies configured';
     RAISE NOTICE '⚡ Triggers and functions set up for automation';
-    RAISE NOTICE '📈 Views created for common queries';
+    RAISE NOTICE '📈 Views created for common queries (includes PoC rewards)';
     RAISE NOTICE '';
-    RAISE NOTICE '🚀 Your database is ready for the Helium Rewards API!';
+    RAISE NOTICE '🚀 Your database is ready for the Helium Rewards API with PoC support!';
     RAISE NOTICE '💡 Next steps:';
     RAISE NOTICE '   1. Configure your environment variables';
     RAISE NOTICE '   2. Run: npm run test:local env';
-    RAISE NOTICE '   3. Add your first device: npm run device:add <DEVICE_KEY> "Device Name"';
+    RAISE NOTICE '   3. Test PoC functionality: npm run test:poc';
+    RAISE NOTICE '   4. Add your first device: npm run device:add <DEVICE_KEY> "Device Name"';
 END $$;

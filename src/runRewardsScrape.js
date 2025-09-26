@@ -6,6 +6,7 @@
 // - Used for local testing and development
 
 const { scrapeHeliumRewards } = require('./scrapeHeliumRewards');
+const { scrapePocRewards } = require('./scrapePocRewards');
 const { parseRewardsData, validateRewardData, enrichRewardData } = require('./parseRewardsData');
 const { upsertHeliumRewards } = require('./upsertHeliumRewards');
 const { testConnection } = require('./supabase');
@@ -14,7 +15,7 @@ const { testConnection } = require('./supabase');
 async function runRewardsScrape(deviceKey, options = {}) {
   const startTime = Date.now();
   
-  console.log('🚀 HELIUM REWARDS SCRAPE ORCHESTRATOR');
+  console.log('🚀 HELIUM REWARDS SCRAPE ORCHESTRATOR (DC + PoC)');
   console.log('=' .repeat(100));
   console.log(`🎯 Target Device: ${deviceKey.substring(0, 60)}...`);
   console.log(`⏰ Started at: ${new Date().toISOString()}`);
@@ -25,7 +26,7 @@ async function runRewardsScrape(deviceKey, options = {}) {
   
   console.log('=' .repeat(100));
   
-  let scrapedData, parsedData, upsertResult;
+  let scrapedData, pocData, parsedData, upsertResult;
   
   try {
     // Step 1: Test database connection
@@ -35,11 +36,16 @@ async function runRewardsScrape(deviceKey, options = {}) {
       throw new Error('Database connection test failed');
     }
     
-    // Step 2: Scrape rewards data from AWS S3
-    console.log('\n📡 STEP 2: Scraping rewards data from AWS S3...');
+    // Step 2: Scrape DC rewards data from AWS S3
+    console.log('\n📡 STEP 2: Scraping DC rewards data from AWS S3...');
     scrapedData = await scrapeHeliumRewards(deviceKey, options.dateRange);
     
-    if (!scrapedData.rewards || scrapedData.rewards.length === 0) {
+    // Step 3: Scrape PoC rewards data from AWS S3
+    console.log('\n💎 STEP 3: Scraping PoC rewards data from AWS S3...');
+    pocData = await scrapePocRewards(deviceKey, options.dateRange);
+    
+    if ((!scrapedData.rewards || scrapedData.rewards.length === 0) && 
+        (!pocData.pocRewards || pocData.pocRewards.length === 0)) {
       console.log('⚠️ No rewards data found for this device and date range');
       return {
         success: true,
@@ -50,20 +56,20 @@ async function runRewardsScrape(deviceKey, options = {}) {
       };
     }
     
-    // Step 3: Parse and aggregate rewards data
-    console.log('\n📊 STEP 3: Parsing and aggregating rewards data...');
-    parsedData = parseRewardsData(scrapedData);
+    // Step 4: Parse and aggregate rewards data (DC + PoC)
+    console.log('\n📊 STEP 4: Parsing and aggregating rewards data (DC + PoC)...');
+    parsedData = parseRewardsData(scrapedData, pocData);
     
-    // Step 4: Validate parsed data
-    console.log('\n✅ STEP 4: Validating parsed data...');
+    // Step 5: Validate parsed data
+    console.log('\n✅ STEP 5: Validating parsed data...');
     validateRewardData(parsedData);
     
-    // Step 5: Enrich data with additional fields
-    console.log('\n🔍 STEP 5: Enriching data with additional fields...');
+    // Step 6: Enrich data with additional fields
+    console.log('\n🔍 STEP 6: Enriching data with additional fields...');
     parsedData = enrichRewardData(parsedData);
     
-    // Step 6: Upsert to database
-    console.log('\n💾 STEP 6: Upserting to database...');
+    // Step 7: Upsert to database
+    console.log('\n💾 STEP 7: Upserting to database...');
     
     // Add execution time to metadata
     parsedData.metadata.executionTime = Date.now() - startTime;
@@ -77,6 +83,9 @@ async function runRewardsScrape(deviceKey, options = {}) {
     console.log('=' .repeat(100));
     console.log(`🎯 Device: ${deviceKey.substring(0, 60)}...`);
     console.log(`💰 Total DC Rewards: ${scrapedData.summary.totalRewards.toLocaleString()}`);
+    if (pocData && pocData.summary) {
+      console.log(`💎 Total PoC Rewards: ${pocData.summary.totalPoc.toLocaleString()} (Base: ${pocData.summary.totalBasePoc.toLocaleString()}, Boosted: ${pocData.summary.totalBoostedPoc.toLocaleString()})`);
+    }
     console.log(`📅 Daily Entries: ${parsedData.dailyRewards.length}`);
     console.log(`➕ Database Inserts: ${upsertResult.insertedCount}`);
     console.log(`🔄 Database Updates: ${upsertResult.updatedCount}`);
@@ -88,11 +97,13 @@ async function runRewardsScrape(deviceKey, options = {}) {
       success: true,
       deviceKey,
       scrapedData,
+      pocData,
       parsedData,
       upsertResult,
       executionTime,
       summary: {
         totalRewards: scrapedData.summary.totalRewards,
+        totalPocRewards: pocData?.summary?.totalPoc || 0,
         dailyEntries: parsedData.dailyRewards.length,
         databaseInserts: upsertResult.insertedCount,
         databaseUpdates: upsertResult.updatedCount,
@@ -111,7 +122,10 @@ async function runRewardsScrape(deviceKey, options = {}) {
     
     // Log partial results if available
     if (scrapedData) {
-      console.error(`📊 Scraped: ${scrapedData.rewards?.length || 0} reward entries`);
+      console.error(`📊 Scraped DC: ${scrapedData.rewards?.length || 0} reward entries`);
+    }
+    if (pocData) {
+      console.error(`💎 Scraped PoC: ${pocData.pocRewards?.length || 0} reward entries`);
     }
     if (parsedData) {
       console.error(`📅 Parsed: ${parsedData.dailyRewards?.length || 0} daily entries`);
@@ -129,6 +143,7 @@ async function runRewardsScrape(deviceKey, options = {}) {
       executionTime,
       partialResults: {
         scrapedData: scrapedData || null,
+        pocData: pocData || null,
         parsedData: parsedData || null,
         upsertResult: upsertResult || null
       }

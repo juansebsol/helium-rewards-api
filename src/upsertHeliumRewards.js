@@ -88,11 +88,16 @@ async function upsertHeliumRewards(parsedData) {
           device_key: deviceKey,
           device_id: deviceId,
           reward_amount_dc: dayData.totalRewardsDC,
+          base_poc_reward: dayData.totalBasePoc || 0,
+          boosted_poc_reward: dayData.totalBoostedPoc || 0,
+          total_poc_reward: dayData.totalPoc || 0,
           reward_type: dayData.rewardType,
           data_source: dayData.dataSource,
           raw_data: {
             rewardCount: dayData.rewardCount,
+            pocRewardCount: dayData.pocRewardCount || 0,
             rawEntries: dayData.rawEntries,
+            pocRawEntries: dayData.pocRawEntries || [],
             metadata: {
               parsedAt: metadata.parsedAt,
               filesProcessed: summary.filesProcessed
@@ -102,8 +107,13 @@ async function upsertHeliumRewards(parsedData) {
         };
         
         if (existingReward) {
-          // Update existing record if reward amount changed
-          if (existingReward.reward_amount_dc !== dayData.totalRewardsDC) {
+          // Update existing record if any reward amount changed
+          const dcChanged = existingReward.reward_amount_dc !== dayData.totalRewardsDC;
+          const pocChanged = (existingReward.base_poc_reward || 0) !== dayData.totalBasePoc || 
+                           (existingReward.boosted_poc_reward || 0) !== dayData.totalBoostedPoc ||
+                           (existingReward.total_poc_reward || 0) !== dayData.totalPoc;
+          
+          if (dcChanged || pocChanged) {
             const { error: updateError } = await supabase
               .from('helium_rewards_daily')
               .update(rewardData)
@@ -113,11 +123,14 @@ async function upsertHeliumRewards(parsedData) {
               console.warn(`⚠️ Error updating reward for ${dayData.date}: ${updateError.message}`);
               errorCount++;
             } else {
-              console.log(`🔄 Updated ${dayData.date}: ${dayData.totalRewardsDC} DC (was ${existingReward.reward_amount_dc} DC)`);
+              const changes = [];
+              if (dcChanged) changes.push(`DC: ${dayData.totalRewardsDC} (was ${existingReward.reward_amount_dc})`);
+              if (pocChanged) changes.push(`PoC: ${dayData.totalPoc} (was ${existingReward.total_poc_reward || 0})`);
+              console.log(`🔄 Updated ${dayData.date}: ${changes.join(', ')}`);
               updatedCount++;
             }
           } else {
-            console.log(`✅ ${dayData.date}: ${dayData.totalRewardsDC} DC (no change)`);
+            console.log(`✅ ${dayData.date}: ${dayData.totalRewardsDC} DC, ${dayData.totalPoc} PoC (no change)`);
           }
         } else {
           // Insert new record
@@ -129,7 +142,7 @@ async function upsertHeliumRewards(parsedData) {
             console.warn(`⚠️ Error inserting reward for ${dayData.date}: ${insertError.message}`);
             errorCount++;
           } else {
-            console.log(`➕ Inserted ${dayData.date}: ${dayData.totalRewardsDC} DC`);
+            console.log(`➕ Inserted ${dayData.date}: ${dayData.totalRewardsDC} DC, ${dayData.totalPoc} PoC`);
             insertedCount++;
           }
         }

@@ -7,22 +7,26 @@
 
 const { formatDC, formatNumber } = require('./scrapeHeliumRewards');
 
-// Parse and aggregate rewards data
-function parseRewardsData(scrapedData) {
+// Parse and aggregate rewards data (DC + PoC)
+function parseRewardsData(scrapedData, pocData = null) {
   if (!scrapedData || !scrapedData.rewards) {
     throw new Error('Invalid scraped data provided');
   }
 
   const { deviceKey, rewards, summary } = scrapedData;
   
-  console.log('📊 PARSING REWARDS DATA');
+  console.log('📊 PARSING REWARDS DATA (DC + PoC)');
   console.log('=' .repeat(80));
   console.log(`🎯 Device: ${deviceKey.substring(0, 60)}...`);
-  console.log(`📝 Processing ${rewards.length} reward entries`);
+  console.log(`📝 Processing ${rewards.length} DC reward entries`);
+  if (pocData && pocData.pocRewards) {
+    console.log(`📝 Processing ${pocData.pocRewards.length} PoC reward entries`);
+  }
   
   // Group rewards by date
   const dailyRewards = new Map();
   
+  // Process DC rewards
   rewards.forEach(reward => {
     const dateKey = reward.date.toISOString().split('T')[0];
     
@@ -31,10 +35,15 @@ function parseRewardsData(scrapedData) {
         date: dateKey,
         deviceKey: deviceKey,
         totalRewardsDC: 0,
+        totalBasePoc: 0,
+        totalBoostedPoc: 0,
+        totalPoc: 0,
         rewardCount: 0,
+        pocRewardCount: 0,
         rewardType: reward.rewardType || 'mobile_verified',
         dataSource: reward.dataSource,
-        rawEntries: []
+        rawEntries: [],
+        pocRawEntries: []
       });
     }
     
@@ -47,6 +56,45 @@ function parseRewardsData(scrapedData) {
       file: reward.file
     });
   });
+
+  // Process PoC rewards if available
+  if (pocData && pocData.pocRewards) {
+    pocData.pocRewards.forEach(pocReward => {
+      const dateKey = pocReward.date.toISOString().split('T')[0];
+      
+      if (!dailyRewards.has(dateKey)) {
+        dailyRewards.set(dateKey, {
+          date: dateKey,
+          deviceKey: deviceKey,
+          totalRewardsDC: 0,
+          totalBasePoc: 0,
+          totalBoostedPoc: 0,
+          totalPoc: 0,
+          rewardCount: 0,
+          pocRewardCount: 0,
+          rewardType: 'mobile_verified',
+          dataSource: pocReward.dataSource,
+          rawEntries: [],
+          pocRawEntries: []
+        });
+      }
+      
+      const dayData = dailyRewards.get(dateKey);
+      dayData.totalBasePoc += pocReward.basePoc;
+      dayData.totalBoostedPoc += pocReward.boostedPoc;
+      dayData.totalPoc += pocReward.totalPoc;
+      dayData.pocRewardCount += 1;
+      dayData.pocRawEntries.push({
+        timestamp: pocReward.timestamp,
+        basePoc: pocReward.basePoc,
+        boostedPoc: pocReward.boostedPoc,
+        totalPoc: pocReward.totalPoc,
+        file: pocReward.file,
+        hotspotId: pocReward.hotspotId,
+        cbsdId: pocReward.cbsdId
+      });
+    });
+  }
   
   // Convert to array and sort by date
   const dailyRewardsArray = Array.from(dailyRewards.values())
@@ -56,10 +104,16 @@ function parseRewardsData(scrapedData) {
   
   // Calculate enhanced statistics
   const totalDC = dailyRewardsArray.reduce((sum, day) => sum + day.totalRewardsDC, 0);
+  const totalBasePoc = dailyRewardsArray.reduce((sum, day) => sum + day.totalBasePoc, 0);
+  const totalBoostedPoc = dailyRewardsArray.reduce((sum, day) => sum + day.totalBoostedPoc, 0);
+  const totalPoc = dailyRewardsArray.reduce((sum, day) => sum + day.totalPoc, 0);
   const activeDays = dailyRewardsArray.length;
   const averageDailyDC = activeDays > 0 ? totalDC / activeDays : 0;
+  const averageDailyPoc = activeDays > 0 ? totalPoc / activeDays : 0;
   const maxDailyDC = Math.max(...dailyRewardsArray.map(d => d.totalRewardsDC));
   const minDailyDC = Math.min(...dailyRewardsArray.map(d => d.totalRewardsDC));
+  const maxDailyPoc = Math.max(...dailyRewardsArray.map(d => d.totalPoc));
+  const minDailyPoc = Math.min(...dailyRewardsArray.map(d => d.totalPoc));
   
   // Performance metrics
   const totalDays = Math.ceil((summary.dateRange.end - summary.dateRange.start) / (1000 * 60 * 60 * 24));
@@ -74,7 +128,13 @@ function parseRewardsData(scrapedData) {
       averageDailyDC: Math.round(averageDailyDC),
       maxDailyDC,
       minDailyDC,
-      totalDC
+      totalDC,
+      totalBasePoc,
+      totalBoostedPoc,
+      totalPoc,
+      averageDailyPoc: Math.round(averageDailyPoc),
+      maxDailyPoc,
+      minDailyPoc
     }
   };
   
@@ -82,19 +142,36 @@ function parseRewardsData(scrapedData) {
   console.log('-' .repeat(80));
   console.log(`📅 Active Days: ${activeDays}/${totalDays} (${uptimePercentage.toFixed(1)}% uptime)`);
   console.log(`💰 Total DC: ${formatNumber(totalDC)} (${formatDC(totalDC)})`);
-  console.log(`📊 Average Daily: ${formatNumber(averageDailyDC)} (${formatDC(averageDailyDC)})`);
-  console.log(`📈 Max Daily: ${formatNumber(maxDailyDC)} (${formatDC(maxDailyDC)})`);
-  console.log(`📉 Min Daily: ${formatNumber(minDailyDC)} (${formatDC(minDailyDC)})`);
+  console.log(`📊 Average Daily DC: ${formatNumber(averageDailyDC)} (${formatDC(averageDailyDC)})`);
+  console.log(`📈 Max Daily DC: ${formatNumber(maxDailyDC)} (${formatDC(maxDailyDC)})`);
+  console.log(`📉 Min Daily DC: ${formatNumber(minDailyDC)} (${formatDC(minDailyDC)})`);
+  console.log(`💎 Total PoC: ${formatNumber(totalPoc)} (Base: ${formatNumber(totalBasePoc)}, Boosted: ${formatNumber(totalBoostedPoc)})`);
+  console.log(`📊 Average Daily PoC: ${formatNumber(averageDailyPoc)}`);
+  console.log(`📈 Max Daily PoC: ${formatNumber(maxDailyPoc)}`);
+  console.log(`📉 Min Daily PoC: ${formatNumber(minDailyPoc)}`);
   
-  // Show top performing days
-  const topDays = dailyRewardsArray
+  // Show top performing days (by DC rewards)
+  const topDaysDC = dailyRewardsArray
     .sort((a, b) => b.totalRewardsDC - a.totalRewardsDC)
     .slice(0, 5);
     
-  console.log('\n🏆 TOP PERFORMING DAYS:');
-  topDays.forEach((day, i) => {
-    console.log(`   ${i + 1}. ${day.date}: ${formatDC(day.totalRewardsDC)} (${day.rewardCount} entries)`);
+  console.log('\n🏆 TOP PERFORMING DAYS (DC REWARDS):');
+  topDaysDC.forEach((day, i) => {
+    console.log(`   ${i + 1}. ${day.date}: ${formatDC(day.totalRewardsDC)} (${day.rewardCount} DC entries)`);
   });
+
+  // Show top performing days (by PoC rewards)
+  const topDaysPoc = dailyRewardsArray
+    .filter(day => day.totalPoc > 0)
+    .sort((a, b) => b.totalPoc - a.totalPoc)
+    .slice(0, 5);
+    
+  if (topDaysPoc.length > 0) {
+    console.log('\n🏆 TOP PERFORMING DAYS (POC REWARDS):');
+    topDaysPoc.forEach((day, i) => {
+      console.log(`   ${i + 1}. ${day.date}: ${formatNumber(day.totalPoc)} PoC (Base: ${formatNumber(day.totalBasePoc)}, Boosted: ${formatNumber(day.totalBoostedPoc)})`);
+    });
+  }
   
   console.log('✅ Parsing completed successfully');
   

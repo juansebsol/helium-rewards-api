@@ -102,24 +102,33 @@ module.exports = async (req, res) => {
     let summary = null;
     if (data && data.length > 0) {
       const totalDC = data.reduce((sum, record) => sum + parseInt(record.reward_amount_dc), 0);
+      const totalBasePoc = data.reduce((sum, record) => sum + parseInt(record.base_poc_reward || 0), 0);
+      const totalBoostedPoc = data.reduce((sum, record) => sum + parseInt(record.boosted_poc_reward || 0), 0);
+      const totalPoc = data.reduce((sum, record) => sum + parseInt(record.total_poc_reward || 0), 0);
       const rewardCounts = data.reduce((sum, record) => sum + (record.raw_data?.rewardCount || 1), 0);
+      const pocRewardCounts = data.reduce((sum, record) => sum + (record.raw_data?.pocRewardCount || 0), 0);
       
       // Group by reward type for breakdown
       const rewardTypeBreakdown = data.reduce((acc, record) => {
         const type = record.reward_type;
         if (!acc[type]) {
-          acc[type] = { count: 0, total_dc: 0 };
+          acc[type] = { count: 0, total_dc: 0, total_poc: 0 };
         }
         acc[type].count += 1;
         acc[type].total_dc += parseInt(record.reward_amount_dc);
+        acc[type].total_poc += parseInt(record.total_poc_reward || 0);
         return acc;
       }, {});
 
       // Calculate daily statistics
       const dailyAmounts = data.map(record => parseInt(record.reward_amount_dc));
+      const dailyPocAmounts = data.map(record => parseInt(record.total_poc_reward || 0));
       const maxDaily = Math.max(...dailyAmounts);
       const minDaily = Math.min(...dailyAmounts);
       const averageDaily = totalDC / data.length;
+      const maxDailyPoc = dailyPocAmounts.length > 0 ? Math.max(...dailyPocAmounts) : 0;
+      const minDailyPoc = dailyPocAmounts.length > 0 ? Math.min(...dailyPocAmounts) : 0;
+      const averageDailyPoc = data.length > 0 ? totalPoc / data.length : 0;
 
       // Calculate uptime (active days vs total days in range)
       let uptimePercentage = null;
@@ -134,7 +143,11 @@ module.exports = async (req, res) => {
       summary = {
         total_dc_rewards: totalDC,
         total_dc_formatted: formatRewardAmount(totalDC),
+        total_base_poc_rewards: totalBasePoc,
+        total_boosted_poc_rewards: totalBoostedPoc,
+        total_poc_rewards: totalPoc,
         total_reward_entries: rewardCounts,
+        total_poc_reward_entries: pocRewardCounts,
         active_days: data.length,
         average_daily_dc: Math.round(averageDaily),
         average_daily_formatted: formatRewardAmount(averageDaily),
@@ -142,6 +155,9 @@ module.exports = async (req, res) => {
         max_daily_formatted: formatRewardAmount(maxDaily),
         min_daily_dc: minDaily,
         min_daily_formatted: formatRewardAmount(minDaily),
+        average_daily_poc: Math.round(averageDailyPoc),
+        max_daily_poc: maxDailyPoc,
+        min_daily_poc: minDailyPoc,
         uptime_percentage: uptimePercentage ? Math.round(uptimePercentage * 100) / 100 : null,
         reward_type_breakdown: rewardTypeBreakdown
       };
@@ -154,9 +170,13 @@ module.exports = async (req, res) => {
       device_name: record.devices?.device_name,
       reward_amount_dc: parseInt(record.reward_amount_dc),
       reward_amount_formatted: formatRewardAmount(parseInt(record.reward_amount_dc)),
+      base_poc_reward: parseInt(record.base_poc_reward || 0),
+      boosted_poc_reward: parseInt(record.boosted_poc_reward || 0),
+      total_poc_reward: parseInt(record.total_poc_reward || 0),
       reward_type: record.reward_type,
       data_source: record.data_source,
       reward_entries: record.raw_data?.rewardCount || 1,
+      poc_reward_entries: record.raw_data?.pocRewardCount || 0,
       day_of_week: new Date(record.transaction_date).toLocaleDateString('en-US', { weekday: 'short' }),
       created_at: record.created_at,
       updated_at: record.updated_at
