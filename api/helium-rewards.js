@@ -167,24 +167,18 @@ module.exports = async (req, res) => {
     const formattedData = (data || []).map((record) => ({
       transaction_date: record.transaction_date,
       device_key: record.devices?.device_key || record.device_key,
-      device_name: record.devices?.device_name,
       reward_amount_dc: parseInt(record.reward_amount_dc),
-      reward_amount_formatted: formatRewardAmount(parseInt(record.reward_amount_dc)),
+      reward_amount_formatted: (parseInt(record.reward_amount_dc) / 100000000),
       base_poc_reward: parseInt(record.base_poc_reward || 0),
       boosted_poc_reward: parseInt(record.boosted_poc_reward || 0),
       total_poc_reward: parseInt(record.total_poc_reward || 0),
-      reward_type: record.reward_type,
       data_source: record.data_source,
-      reward_entries: record.raw_data?.rewardCount || 1,
-      poc_reward_entries: record.raw_data?.pocRewardCount || 0,
-      day_of_week: new Date(record.transaction_date).toLocaleDateString('en-US', { weekday: 'short' }),
       created_at: record.created_at,
       updated_at: record.updated_at
     }));
 
     return successResponse(res, {
       device_key: device_key.substring(0, 60) + '...',
-      device_name: device.device_name,
       device_active: device.is_active,
       query_parameters: {
         days: days ? parseInt(days) : null,
