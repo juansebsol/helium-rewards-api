@@ -142,7 +142,7 @@ module.exports = async (req, res) => {
 
       summary = {
         total_dc_rewards: totalDC,
-        total_dc_formatted: formatRewardAmount(totalDC),
+        total_dc_formatted: (totalDC / 100000000).toFixed(2),
         total_base_poc_rewards: totalBasePoc,
         total_boosted_poc_rewards: totalBoostedPoc,
         total_poc_rewards: totalPoc,
