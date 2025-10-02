@@ -1,6 +1,51 @@
 // test-local-scraping.js
 // Local testing script for Helium rewards scraping
 // Provides various test scenarios and debugging utilities
+//
+// USAGE COMMANDS:
+// ===============
+// 
+// QUICK COMMANDS (using npm scripts - uses your .env automatically):
+// ------------------------------------------------------------------
+// npm run test:local          - Run all tests (environment, database, devices, scrape, pipeline)
+// npm run test:scrape         - Test scraping only (uses DEFAULT_DEVICE_KEY from .env, 7 days)
+// npm run test:query          - Test device queries only
+// npm run test:scheduled      - Test scheduled scraping functionality
+//
+// DIRECT COMMANDS (manual with custom parameters):
+// ------------------------------------------------
+// 1. Test scraping only (no database):
+//    node -r dotenv/config test-local-scraping-2.js scrape <DEVICE_KEY> <DAYS> <START_DATE>
+//    Example: node -r dotenv/config test-local-scraping-2.js scrape 14dhJinBmTD6rY7oqaJafaHzHPRXzsTk4vFGSujLPd5MEKB3qzb 30 2025-09-04
+//
+// 2. Test full pipeline (scrape + parse + database):
+//    node -r dotenv/config test-local-scraping-2.js pipeline <DEVICE_KEY> <DAYS> <START_DATE>
+//    Example: node -r dotenv/config test-local-scraping-2.js pipeline 14dhJinBmTD6rY7oqaJafaHzHPRXzsTk4vFGSujLPd5MEKB3qzb 30 2025-09-04
+//
+// 3. Run all tests:
+//    node -r dotenv/config test-local-scraping-2.js all
+//
+// 4. Test specific components:
+//    node -r dotenv/config test-local-scraping-2.js env      - Check environment variables
+//    node -r dotenv/config test-local-scraping-2.js db       - Test database connection
+//    node -r dotenv/config test-local-scraping-2.js devices  - List tracked devices
+//
+// PARAMETERS:
+// - DEVICE_KEY: Your Helium device key (required for direct commands)
+// - DAYS: Number of days to scrape backwards from START_DATE (default: 7)
+// - START_DATE: Start date in YYYY-MM-DD format (default: today)
+//
+// NOTES:
+// - npm scripts automatically load your .env file and use DEFAULT_DEVICE_KEY
+// - Direct commands require you to specify device key manually
+// - All commands use dotenv to load environment variables automatically
+//
+// HOW IT WORKS:
+// - Scrapes AWS S3 for Helium blockchain data
+// - Looks for DC transfer rewards for your device
+// - Processes protobuf messages to extract reward amounts
+// - Can optionally save to database (pipeline mode)
+// - Shows detailed logs of what it finds
 
 require('dotenv').config();
 
@@ -12,6 +57,10 @@ const { testConnection } = require('./src/supabase');
 
 // Test configuration
 const DEFAULT_DEVICE_KEY = process.env.DEFAULT_DEVICE_KEY || '1trSusefVoBGpZF78uAGhqfNNi9jHeZwgfn8WnnGgGhzJJDo1Xer8uQDEryJ7Lu3XKH44M7qReXgGjegznjKa6AHMjJMeNQrcZJViYc7oqwoBHygSWiC5qVKyWgnjQDWsDgvphnRTkYKbZESJrRTMP89TBKz5zgnt4N8JKQaQPNMqv3A1579TpbF2xYM1gBhTDf5PFyNixg5tHKC4WZnJnBxivSEezPiHbewL2NPpsv5z1bEeH8NngitV6aNB3AmC7GjSwn6Zn2TCTubajt9CLmg6E5ap12MGKUHJFtJGnuYczVJ1o1pouqggU9XzEasW3MZFH9KVMo97ukPGv4yTpsG4UrDmQk23s34pfFLWH3sxi';
+
+// CONFIGURATION - Change these values to test different scenarios
+const DEFAULT_DAYS_TO_SCRAPE = 30; // Number of days to scrape in test suite
+const DEFAULT_TEST_DAYS = 7; // Default days for individual test commands
 
 // Test scenarios
 async function testDatabaseConnection() {
@@ -33,20 +82,23 @@ async function testDatabaseConnection() {
   }
 }
 
-async function testScrapeOnly(deviceKey = DEFAULT_DEVICE_KEY, days = 7) {
+async function testScrapeOnly(deviceKey = DEFAULT_DEVICE_KEY, days = DEFAULT_TEST_DAYS, startDate = null) {
   console.log('📡 TESTING SCRAPE ONLY (NO DATABASE)');
   console.log('=' .repeat(60));
   console.log(`🎯 Device: ${deviceKey.substring(0, 60)}...`);
   console.log(`📅 Days: ${days}`);
+  if (startDate) {
+    console.log(`📅 Start Date: ${startDate.toISOString().split('T')[0]}`);
+  }
   console.log('=' .repeat(60));
   
   try {
     // Create custom date range for testing
-    const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+    const endDate = startDate || new Date();
+    const actualStartDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
     
     const result = await scrapeHeliumRewards(deviceKey, {
-      start: startDate,
+      start: actualStartDate,
       end: endDate
     });
     
@@ -55,7 +107,7 @@ async function testScrapeOnly(deviceKey = DEFAULT_DEVICE_KEY, days = 7) {
     console.log(`✅ Rewards found: ${result.rewards.length}`);
     console.log(`💰 Total DC: ${result.summary.totalRewards.toLocaleString()}`);
     console.log(`📁 Files processed: ${result.summary.filesProcessed}`);
-    console.log(`📅 Date range: ${result.summary.dateRange.start.toISOString().split('T')[0]} → ${result.summary.dateRange.end.toISOString().split('T')[0]}`);
+    console.log(`📅 Date range: ${actualStartDate.toISOString().split('T')[0]} → ${endDate.toISOString().split('T')[0]}`);
     
     if (result.rewards.length > 0) {
       console.log('\n🎯 SAMPLE REWARDS:');
@@ -72,20 +124,23 @@ async function testScrapeOnly(deviceKey = DEFAULT_DEVICE_KEY, days = 7) {
   }
 }
 
-async function testFullPipeline(deviceKey = DEFAULT_DEVICE_KEY, days = 7) {
+async function testFullPipeline(deviceKey = DEFAULT_DEVICE_KEY, days = DEFAULT_TEST_DAYS, startDate = null) {
   console.log('🚀 TESTING FULL PIPELINE');
   console.log('=' .repeat(60));
   console.log(`🎯 Device: ${deviceKey.substring(0, 60)}...`);
   console.log(`📅 Days: ${days}`);
+  if (startDate) {
+    console.log(`📅 Start Date: ${startDate.toISOString().split('T')[0]}`);
+  }
   console.log('=' .repeat(60));
   
   try {
     // Create custom date range for testing
-    const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+    const endDate = startDate || new Date();
+    const actualStartDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
     
     const result = await runRewardsScrape(deviceKey, {
-      dateRange: { start: startDate, end: endDate }
+      dateRange: { start: actualStartDate, end: endDate }
     });
     
     if (result.success) {
@@ -235,12 +290,12 @@ async function runTestSuite() {
   
   // Test 4: Scrape only (no database)
   console.log('\n4️⃣ Testing scrape functionality...');
-  results.scrape = await testScrapeOnly(DEFAULT_DEVICE_KEY, 3);
+  results.scrape = await testScrapeOnly(DEFAULT_DEVICE_KEY, DEFAULT_DAYS_TO_SCRAPE);
   
   // Test 5: Full pipeline (if scrape worked)
   if (results.scrape && results.scrape.rewards.length > 0) {
     console.log('\n5️⃣ Testing full pipeline...');
-    results.pipeline = await testFullPipeline(DEFAULT_DEVICE_KEY, 3);
+    results.pipeline = await testFullPipeline(DEFAULT_DEVICE_KEY, DEFAULT_DAYS_TO_SCRAPE);
   } else {
     console.log('\n5️⃣ Skipping full pipeline test (no scraped data)');
     results.pipeline = null;
@@ -268,7 +323,9 @@ async function runTestSuite() {
 if (require.main === module) {
   const command = process.argv[2];
   const deviceKey = process.argv[3] || DEFAULT_DEVICE_KEY;
-  const days = parseInt(process.argv[4]) || 7;
+  const days = parseInt(process.argv[4]) || DEFAULT_TEST_DAYS;
+  const startDateStr = process.argv[5];
+  const startDate = startDateStr ? new Date(startDateStr) : null;
   
   switch (command) {
     case 'env':
@@ -284,13 +341,13 @@ if (require.main === module) {
       break;
       
     case 'scrape':
-      testScrapeOnly(deviceKey, days)
+      testScrapeOnly(deviceKey, days, startDate)
         .then(result => process.exit(result ? 0 : 1))
         .catch(() => process.exit(1));
       break;
       
     case 'pipeline':
-      testFullPipeline(deviceKey, days)
+      testFullPipeline(deviceKey, days, startDate)
         .then(result => process.exit(result?.success ? 0 : 1))
         .catch(() => process.exit(1));
       break;

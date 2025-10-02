@@ -24,6 +24,17 @@ const DATA_SOURCES = {
     prefix: "foundation-mobile-verified/mobile_network_reward_shares_v1",
     proto: "helium.poc_mobile.mobile_reward_share",
     description: "Mobile network reward shares (verified rewards for mobile hotspots)"
+  },
+  // Let's also check other potential data sources
+  MOBILE_UNVERIFIED: {
+    prefix: "foundation-mobile-unverified/mobile_network_reward_shares_v1",
+    proto: "helium.poc_mobile.mobile_reward_share",
+    description: "Mobile network reward shares (unverified rewards for mobile hotspots)"
+  },
+  IOT_VERIFIED: {
+    prefix: "foundation-iot-verified/iot_network_reward_shares_v1",
+    proto: "helium.iot_mobile.iot_reward_share",
+    description: "IoT network reward shares (verified rewards for IoT hotspots)"
   }
 };
 
@@ -150,13 +161,23 @@ async function scrapeHeliumRewards(deviceKey, customDateRange = null) {
   
   // Calculate date range
   const endDate = new Date();
-  const startDate = customDateRange?.start || new Date(endDate.getTime() - (DAYS_TO_AGGREGATE - 1) * 24 * 60 * 60 * 1000);
+  const startDate = customDateRange?.start || new Date(endDate.getTime() - DAYS_TO_AGGREGATE * 24 * 60 * 60 * 1000);
   const actualEndDate = customDateRange?.end || endDate;
+  
+  // Debug logging
+  if (customDateRange) {
+    console.log(`🔧 Custom date range provided:`, {
+      start: customDateRange.start?.toISOString(),
+      end: customDateRange.end?.toISOString()
+    });
+  }
   
   const startTimestamp = startDate.getTime();
   const endTimestamp = actualEndDate.getTime();
   
-  console.log(`📅 Date Range: ${startDate.toISOString().split('T')[0]} → ${actualEndDate.toISOString().split('T')[0]} (${DAYS_TO_AGGREGATE} days)`);
+  // Calculate actual days for display
+  const actualDays = Math.ceil((actualEndDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+  console.log(`📅 Date Range: ${startDate.toISOString().split('T')[0]} → ${actualEndDate.toISOString().split('T')[0]} (${actualDays} days)`);
   console.log(`📊 Data Sources:`);
   for (const [key, source] of Object.entries(DATA_SOURCES)) {
     console.log(`   • ${key}: ${source.prefix}`);
@@ -255,6 +276,7 @@ async function scrapeHeliumRewards(deviceKey, customDateRange = null) {
       console.log(`\n🔄 Processing: ${fileInfo.file.split('/').pop()}`);
       console.log(`📅 Date: ${fileInfo.date.toISOString()}`);
       
+      
       try {
         const get = await s3.send(new GetObjectCommand({
           Bucket: BUCKET,
@@ -273,6 +295,7 @@ async function scrapeHeliumRewards(deviceKey, customDateRange = null) {
 
         let messageCount = 0;
         let foundCount = 0;
+        let totalRewardForFile = 0;
         
         for await (const frame of framedMessages(gunzip)) {
           messageCount++;
@@ -284,8 +307,11 @@ async function scrapeHeliumRewards(deviceKey, customDateRange = null) {
             if (containsTargetDevice(decoded, targetFormats)) {
               foundCount++;
               
-              // Extract reward amount
-              const rewardAmount = decoded.gatewayReward?.dcTransferReward?.low || 0;
+              // Extract reward amount using toString() method
+              const dcTransfer = decoded.gatewayReward?.dcTransferReward;
+              const rewardAmount = dcTransfer ? parseInt(dcTransfer.toString()) : 0;
+              
+              totalRewardForFile += rewardAmount;
               
               mobileRewards.push({
                 file: fileInfo.file,
