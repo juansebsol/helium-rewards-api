@@ -13,7 +13,7 @@
             --muted: #6b7280;
             --border: #e5e7eb;
             --soft: #f3f4f6;
-            --primary: #2563eb;
+            --primary: #16a34a;
             --success: #16a34a;
             --radius: 12px;
         }
@@ -207,6 +207,163 @@
             border-radius: 10px;
             word-break: break-all;
         }
+
+        /* Device management (shared with other debug UI) */
+        .add-mode-switcher {
+            display: flex;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            background: var(--soft);
+            margin-bottom: 10px;
+        }
+        .add-mode-switcher button {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 10px 12px;
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--muted);
+            cursor: pointer;
+        }
+        .add-mode-switcher button.active { background: white; color: var(--text); }
+        .add-method-panes {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            background: white;
+            margin-bottom: 12px;
+        }
+        .add-method-block { padding: 0; background: transparent; }
+        .add-method-hidden { display: none; }
+        .add-method-title { margin: 0 0 10px; font-size: 14px; }
+        .hint-text { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+
+        .row-inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .row-inline input { flex: 1; min-width: 260px; }
+
+        .section-header-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 10px; }
+        .device-count-badge { font-size: 12px; color: var(--muted); }
+        .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .toolbar-sep { color: var(--muted); opacity: 0.5; }
+
+        .device-list {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: white;
+            overflow: hidden;
+        }
+        .device-list.empty-state { padding: 14px; color: var(--muted); font-size: 13px; }
+        .device-table {
+            display: grid;
+            gap: 0;
+        }
+        .device-row {
+            display: grid;
+            grid-template-columns: 28px minmax(180px, 1.4fr) 120px 170px minmax(220px, 2.2fr) auto;
+            gap: 8px;
+            align-items: stretch;
+            padding: 8px 10px;
+            border-top: 1px solid var(--border);
+            font-size: 13px;
+        }
+        .device-row.header {
+            background: var(--soft);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
+            border-top: none;
+        }
+        .device-cell {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+        }
+        .device-row.header .col-device { flex-direction: row; align-items: center; gap: 0; }
+        .col-select { justify-content: center; }
+        .col-added, .col-last { justify-content: center; text-align: center; }
+        .col-actions { justify-content: flex-end; }
+        .col-key { justify-content: flex-start; }
+        .col-device { align-items: flex-start; flex-direction: column; gap: 4px; }
+        .device-name {
+            font-weight: 700;
+            margin-right: 6px;
+            display: inline-block;
+        }
+        .key-pill {
+            display: inline-block;
+            max-width: 100%;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            background: var(--soft);
+            border: 1px solid var(--border);
+            padding: 6px 8px;
+            border-radius: 10px;
+        }
+        .truncate {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: bottom;
+        }
+        .device-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+        .status { display: none; }
+        .muted { color: var(--muted); font-size: 12px; }
+        .tracked-device-cb { margin: 0; }
+        .device-row:not(.header):hover { background: rgba(17,24,39,0.02); }
+        .device-row:not(.header):nth-child(even) { background: rgba(17,24,39,0.01); }
+        .device-actions .button,
+        .toolbar .button,
+        .wallet-actions .button { margin: 0; }
+
+        @media (max-width: 980px) {
+            .device-row {
+                grid-template-columns: 24px minmax(140px, 1fr) 120px 140px;
+                grid-template-rows: auto auto;
+                row-gap: 6px;
+            }
+            .device-row .col-key,
+            .device-row .col-actions {
+                grid-column: 2 / -1;
+                justify-content: flex-start;
+            }
+            .col-added, .col-last { justify-content: flex-start; text-align: left; }
+        }
+
+        .wallet-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+        .wallet-devices-grid {
+            display: grid;
+            gap: 8px;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 320px));
+            justify-content: start;
+            align-items: start;
+        }
+        .wallet-device-card {
+            display: grid;
+            grid-template-columns: 20px 1fr;
+            gap: 10px;
+            align-items: start;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+            background: white;
+        }
+        .wallet-device-card input[type="checkbox"] { margin-top: 2px; }
+        .wallet-device-card .name { font-weight: 700; margin-bottom: 4px; }
+        .wallet-device-card .key {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            color: var(--muted);
+            word-break: break-all;
+            max-height: 3.2em;
+            overflow: hidden;
+        }
     </style>
 </head>
 <body>
@@ -224,6 +381,81 @@
                     <label for="apiUrl">API Base URL:</label>
                     <input type="url" id="apiUrl" placeholder="https://your-api-domain.vercel.app" value="https://helium-rewards-api.vercel.app">
                 </div>
+            </div>
+
+            <!-- Device management -->
+            <div class="section">
+                <h2>Device management</h2>
+
+                <div class="add-mode-switcher">
+                    <button type="button" class="active" id="addModeKeyBtn" onclick="setAddMode('key')">Add by device key</button>
+                    <button type="button" id="addModeWalletBtn" onclick="setAddMode('wallet')">Add by wallet</button>
+                </div>
+
+                <div class="add-method-panes">
+                    <div class="add-method-block" id="addPaneKey">
+                        <h3 class="add-method-title">Add by device key</h3>
+                        <div class="form-group">
+                            <label for="deviceKey">Device key:</label>
+                            <input type="text" id="deviceKey" placeholder="Device key">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="deviceName">Device name (optional):</label>
+                                <input type="text" id="deviceName" placeholder="Name">
+                            </div>
+                            <div class="form-group">
+                                <label for="deviceNotes">Notes (optional):</label>
+                                <input type="text" id="deviceNotes" placeholder="Notes">
+                            </div>
+                        </div>
+                        <button class="button success" onclick="addDevice()">Add device</button>
+                    </div>
+
+                    <div class="add-method-block add-method-hidden" id="addPaneWallet">
+                        <h3 class="add-method-title">Add by wallet</h3>
+                        <p class="hint-text">Fetch hotspots for a wallet, then add selected devices to tracking.</p>
+                        <div class="row-inline">
+                            <input type="text" id="walletKey" placeholder="Wallet public key">
+                            <button class="button info" id="fetchWalletBtn" onclick="fetchDevicesByWallet()">Fetch devices</button>
+                        </div>
+                        <div class="loading" id="walletLoading" style="display: none;">
+                            <span class="spinner"></span>
+                            Loading wallet devices...
+                        </div>
+                        <div class="result error" id="walletError" style="display: none;"></div>
+                        <div id="walletDevicesWrap" style="display: none;">
+                            <div class="wallet-actions">
+                                <button class="button success" onclick="addSelectedWalletDevices()">Add selected</button>
+                                <button class="button info" onclick="selectAllWalletDevices(true)">Select all</button>
+                                <button class="button info" onclick="selectAllWalletDevices(false)">Deselect all</button>
+                            </div>
+                            <div class="wallet-devices-grid" id="walletDevicesGrid"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-header-row">
+                    <div style="display:flex; gap:8px; align-items:baseline;">
+                        <div style="font-weight:700;">Tracked devices</div>
+                        <div class="device-count-badge" id="deviceCount">(0 devices)</div>
+                    </div>
+                    <div class="toolbar">
+                        <button class="button info" onclick="loadDevices()">Refresh</button>
+                        <button class="button info" onclick="loadDevicesWithStats()">Refresh + stats</button>
+                        <span class="toolbar-sep">|</span>
+                        <button class="button info" onclick="selectAllTrackedDevices(true)">Select all</button>
+                        <button class="button info" onclick="selectAllTrackedDevices(false)">Deselect all</button>
+                        <button class="button" style="background: var(--danger);" onclick="removeSelectedTrackedDevices()">Remove selected</button>
+                    </div>
+                </div>
+
+                <div class="loading" id="devicesLoading">
+                    <span class="spinner"></span>
+                    Loading devices...
+                </div>
+
+                <div class="device-list empty-state" id="deviceList">No tracked devices loaded yet.</div>
             </div>
             
             <!-- Trigger Scraping -->
@@ -330,17 +562,368 @@
             <!-- API Information -->
             <div class="api-info">
                 <h3>API usage</h3>
+                <p><strong>List tracked devices:</strong> <code>GET /api/manage-devices</code></p>
+                <p><strong>List tracked devices (+stats):</strong> <code>GET /api/manage-devices?include_stats=true</code></p>
+                <p><strong>Add tracked device:</strong> <code>POST /api/manage-devices</code></p>
+                <p><strong>Remove tracked device:</strong> <code>DELETE /api/manage-devices</code></p>
                 <p><strong>Trigger Scraping:</strong> <code>POST /api/trigger-scrape</code></p>
                 <p><strong>Query Rewards:</strong> <code>GET /api/helium-rewards?device_key=...&days=30</code></p>
                 <p><strong>Date Range Query:</strong> <code>GET /api/helium-rewards?device_key=...&start=2025-01-01&end=2025-01-31</code></p>
                 <p><strong>Reward Type Filter:</strong> <code>GET /api/helium-rewards?device_key=...&reward_type=mobile_verified</code></p>
+                <p><strong>Wallet device lookup (Helium):</strong> <code>GET https://entities.nft.helium.io/v2/wallet/&lt;walletPublicKey&gt;</code></p>
             </div>
         </div>
     </div>
     
     <script>
+        const WALLET_ENTITIES_URL = 'https://entities.nft.helium.io/v2/wallet';
+
         function getApiUrl() {
             return document.getElementById('apiUrl').value.replace(/\/$/, '');
+        }
+
+        function escapeHtml(s) {
+            const div = document.createElement('div');
+            div.textContent = String(s ?? '');
+            return div.innerHTML;
+        }
+
+        function getEntityKeyString(hotspot) {
+            const attr = hotspot?.attributes?.find((a) => a?.trait_type === 'entity_key_string');
+            return attr?.value ?? hotspot?.entity_key_str ?? '';
+        }
+
+        function setAddMode(mode) {
+            const isKey = mode === 'key';
+            document.getElementById('addModeKeyBtn').classList.toggle('active', isKey);
+            document.getElementById('addModeWalletBtn').classList.toggle('active', !isKey);
+            document.getElementById('addPaneKey').classList.toggle('add-method-hidden', !isKey);
+            document.getElementById('addPaneWallet').classList.toggle('add-method-hidden', isKey);
+        }
+
+        // -----------------------------
+        // Device management
+        // -----------------------------
+
+        let walletFetchedDevices = [];
+        let lastDisplayedDevices = [];
+
+        function showWalletError(message) {
+            const el = document.getElementById('walletError');
+            el.innerHTML = message ? String(message) : '';
+            el.style.display = message ? 'block' : 'none';
+        }
+
+        async function fetchDevicesByWallet() {
+            const wallet = document.getElementById('walletKey').value.trim();
+            if (!wallet) {
+                showWalletError('Wallet public key is required.');
+                return;
+            }
+
+            const loading = document.getElementById('walletLoading');
+            const wrap = document.getElementById('walletDevicesWrap');
+            const grid = document.getElementById('walletDevicesGrid');
+            const btn = document.getElementById('fetchWalletBtn');
+
+            loading.style.display = 'block';
+            showWalletError('');
+            wrap.style.display = 'none';
+            grid.innerHTML = '';
+            walletFetchedDevices = [];
+            btn.disabled = true;
+
+            try {
+                const url = `${WALLET_ENTITIES_URL}/${encodeURIComponent(wallet)}`;
+                const res = await fetch(url, { headers: { Accept: 'application/json' } });
+                if (!res.ok) {
+                    let body = '';
+                    try { body = await res.text(); } catch (_) {}
+                    const details = body ? `<br><br><strong>Response body:</strong><br><pre>${escapeHtml(body).slice(0, 2000)}</pre>` : '';
+                    throw new Error(
+                        `<strong>Wallet lookup failed</strong><br>` +
+                        `<strong>Endpoint:</strong> ${escapeHtml(url)}<br>` +
+                        `<strong>Status:</strong> HTTP ${res.status} ${escapeHtml(res.statusText || '')}` +
+                        details
+                    );
+                }
+                const data = await res.json();
+                const hotspots = data.hotspots || [];
+
+                walletFetchedDevices = hotspots
+                    .map((h) => ({
+                        name: h.name || 'Unnamed',
+                        entity_key_string: getEntityKeyString(h),
+                        asset_id: h.asset_id
+                    }))
+                    .filter((d) => d.entity_key_string);
+
+                grid.innerHTML = walletFetchedDevices
+                    .map(
+                        (d, i) => `
+                        <label class="wallet-device-card">
+                            <input type="checkbox" class="wallet-device-cb" data-index="${i}">
+                            <div>
+                                <div class="name">${escapeHtml(d.name)}</div>
+                                <div class="key">${escapeHtml(d.entity_key_string)}</div>
+                            </div>
+                        </label>
+                    `
+                    )
+                    .join('');
+
+                wrap.style.display = 'block';
+            } catch (e) {
+                // Error message may include HTML (we escape response body ourselves above)
+                showWalletError(e?.message || 'Request failed');
+            } finally {
+                loading.style.display = 'none';
+                btn.disabled = false;
+            }
+        }
+
+        function selectAllWalletDevices(checked) {
+            document.querySelectorAll('.wallet-device-cb').forEach((cb) => (cb.checked = checked));
+        }
+
+        async function addSelectedWalletDevices() {
+            const indexes = Array.from(document.querySelectorAll('.wallet-device-cb:checked')).map((cb) =>
+                parseInt(cb.dataset.index, 10)
+            );
+            if (!indexes.length) {
+                showWalletError('Select at least one device.');
+                return;
+            }
+            showWalletError('');
+
+            let added = 0;
+            let failed = 0;
+
+            for (const i of indexes) {
+                const d = walletFetchedDevices[i];
+                if (!d) continue;
+                try {
+                    const response = await fetch(`${getApiUrl()}/api/manage-devices`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            device_key: d.entity_key_string,
+                            device_name: d.name || undefined
+                        })
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.success) added++;
+                    else failed++;
+                } catch (_) {
+                    failed++;
+                }
+            }
+
+            if (added) {
+                selectAllWalletDevices(false);
+                loadDevices();
+            }
+
+            const msg = `Added ${added} device(s).` + (failed ? ` ${failed} failed.` : '');
+            showResult(msg, failed ? 'error' : 'success');
+        }
+
+        async function addDevice() {
+            const deviceKey = document.getElementById('deviceKey').value.trim();
+            const deviceName = document.getElementById('deviceName').value.trim();
+            const notes = document.getElementById('deviceNotes').value.trim();
+
+            if (!deviceKey) {
+                showResult('Device key is required.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${getApiUrl()}/api/manage-devices`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        device_key: deviceKey,
+                        device_name: deviceName || undefined,
+                        notes: notes || undefined
+                    })
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    showResult(`Device added: ${escapeHtml(data.device.device_name || deviceName || 'Unnamed')}`, 'success');
+                    document.getElementById('deviceKey').value = '';
+                    document.getElementById('deviceName').value = '';
+                    document.getElementById('deviceNotes').value = '';
+                    loadDevices();
+                } else {
+                    showResult(`Failed to add device: ${escapeHtml(data.error)}`, 'error');
+                }
+            } catch (error) {
+                showResult(`Network error: ${escapeHtml(error.message)}`, 'error');
+            }
+        }
+
+        async function doRemoveDevice(deviceKey) {
+            const response = await fetch(`${getApiUrl()}/api/manage-devices`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device_key: deviceKey })
+            });
+            const data = await response.json();
+            return { ok: response.ok && data.success, data };
+        }
+
+        function setScrapeDeviceKeyByIndex(index) {
+            const d = lastDisplayedDevices[parseInt(index, 10)];
+            if (!d) return;
+            const key = d.device_key_full || d.device_key;
+            if (!key) return;
+            document.getElementById('scrapeDeviceKey').value = key;
+            document.getElementById('queryDeviceKey').value = key;
+            showResult('Device key copied into Trigger scraping and Query rewards.', 'info');
+        }
+
+        function selectAllTrackedDevices(checked) {
+            document.querySelectorAll('.tracked-device-cb').forEach((cb) => (cb.checked = checked));
+        }
+
+        async function removeSelectedTrackedDevices() {
+            const checked = document.querySelectorAll('.tracked-device-cb:checked');
+            if (!checked.length) {
+                showResult('Select one or more devices first.', 'error');
+                return;
+            }
+            const indexes = Array.from(checked).map((cb) => parseInt(cb.dataset.index, 10));
+            const devicesToRemove = indexes.map((i) => lastDisplayedDevices[i]).filter(Boolean);
+            if (!confirm(`Remove ${devicesToRemove.length} device(s) from tracking?`)) return;
+
+            let removed = 0;
+            let failed = 0;
+            for (const d of devicesToRemove) {
+                const key = d.device_key_full || d.device_key;
+                if (!key) continue;
+                try {
+                    const { ok } = await doRemoveDevice(key);
+                    if (ok) removed++;
+                    else failed++;
+                } catch (_) {
+                    failed++;
+                }
+            }
+            showResult(`Removed ${removed} device(s).` + (failed ? ` ${failed} failed.` : ''), failed ? 'error' : 'success');
+            loadDevices();
+        }
+
+        function loadDevicesWithStats() {
+            loadDevices(true);
+        }
+
+        async function loadDevices(includeStats = false) {
+            const loading = document.getElementById('devicesLoading');
+            const deviceList = document.getElementById('deviceList');
+
+            loading.style.display = 'block';
+            try {
+                const url = `${getApiUrl()}/api/manage-devices?include_stats=${includeStats}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    displayDevices(data.devices || [], includeStats);
+                } else {
+                    deviceList.className = 'device-list empty-state';
+                    deviceList.textContent = `Failed to load devices: ${data.error || 'Unknown error'}`;
+                }
+            } catch (error) {
+                deviceList.className = 'device-list empty-state';
+                deviceList.textContent = `Network error: ${error.message}`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayDevices(devices, includeStats) {
+            const deviceList = document.getElementById('deviceList');
+            const countEl = document.getElementById('deviceCount');
+            lastDisplayedDevices = devices || [];
+            const n = lastDisplayedDevices.length;
+            countEl.textContent = `(${n} device${n === 1 ? '' : 's'})`;
+
+            if (!n) {
+                deviceList.className = 'device-list empty-state';
+                deviceList.textContent = 'No tracked devices.';
+                return;
+            }
+
+            deviceList.className = 'device-list';
+            const header = `
+                <div class="device-table">
+                    <div class="device-row header">
+                        <div class="device-cell col-select"></div>
+                        <div class="device-cell col-device">Device</div>
+                        <div class="device-cell col-added">Added</div>
+                        <div class="device-cell col-last">Last scraped</div>
+                        <div class="device-cell col-key">Device key</div>
+                        <div class="device-cell col-actions">Actions</div>
+                    </div>
+                </div>
+            `;
+            const rows = lastDisplayedDevices
+                .map((device, idx) => {
+                    const lastScraped = device.last_scraped ? new Date(device.last_scraped).toLocaleString() : 'Never';
+                    const added = device.added_to_tracked_at ? new Date(device.added_to_tracked_at).toLocaleDateString() : '—';
+                    const name = escapeHtml(device.device_name || 'Unnamed');
+                    const keyDisplay = escapeHtml(device.device_key || '');
+                    const notes = device.notes ? escapeHtml(device.notes) : '';
+
+                    let stats = '';
+                    if (includeStats && device.stats && device.stats.last_30_days) {
+                        const s = device.stats.last_30_days;
+                        stats = ` | 30d DC: ${Number(s.total_dc || 0).toLocaleString()} | Active: ${s.active_days}/30 | Avg/day: ${Number(s.average_daily || 0).toLocaleString()}`;
+                    }
+
+                    return `
+                        <div class="device-row">
+                            <div class="device-cell col-select">
+                                <input type="checkbox" class="tracked-device-cb" data-index="${idx}">
+                            </div>
+                            <div class="device-cell col-device">
+                                <div>
+                                    <span class="device-name">${name}</span>
+                                </div>
+                                ${notes ? `<div class="muted">Notes: ${notes}</div>` : ''}
+                                ${stats ? `<div class="muted">${stats}</div>` : ''}
+                            </div>
+                            <div class="device-cell col-added muted">${added}</div>
+                            <div class="device-cell col-last muted">${lastScraped}</div>
+                            <div class="device-cell col-key">
+                                <span class="key-pill truncate" title="${keyDisplay}">${keyDisplay}</span>
+                            </div>
+                            <div class="device-cell col-actions device-actions">
+                                <button class="button info" onclick="setScrapeDeviceKeyByIndex(${idx})">Use</button>
+                                <button class="button" style="background: var(--danger);" onclick="removeSelectedSingle(${idx})">Remove</button>
+                            </div>
+                        </div>
+                    `;
+                })
+                .join('');
+            deviceList.innerHTML = header + rows;
+        }
+
+        async function removeSelectedSingle(index) {
+            const d = lastDisplayedDevices[parseInt(index, 10)];
+            if (!d) return;
+            const name = d.device_name || 'Unnamed';
+            if (!confirm(`Remove "${name}" from tracking?`)) return;
+            const key = d.device_key_full || d.device_key;
+            if (!key) return;
+            try {
+                const { ok, data } = await doRemoveDevice(key);
+                if (ok) showResult(`Removed: ${escapeHtml(name)}`, 'success');
+                else showResult(`Failed to remove: ${escapeHtml(data?.error || 'Unknown error')}`, 'error');
+            } catch (e) {
+                showResult(`Network error: ${escapeHtml(e?.message || 'Request failed')}`, 'error');
+            }
+            loadDevices();
         }
         
         function showLoading(text = 'Processing...') {
@@ -411,23 +994,23 @@
                 if (response.ok && data.success) {
                     const details = data.details;
                     showResult(`
-                        ✅ <strong>GitHub Action triggered successfully!</strong><br><br>
-                        📱 <strong>Device:</strong> ${details.device_key}<br>
-                        📅 <strong>Parameters:</strong> ${details.parameters.days ? `${details.parameters.days} days` : `${details.parameters.start_date} to ${details.parameters.end_date}`}<br>
-                        🔄 <strong>Status:</strong> ${details.status}<br>
-                        ⏰ <strong>Triggered:</strong> ${new Date(details.triggered_at).toLocaleString()}<br><br>
-                        💡 <strong>Monitor progress at:</strong><br>
+                        <strong>GitHub Action triggered successfully.</strong><br><br>
+                        <strong>Device:</strong> ${details.device_key}<br>
+                        <strong>Parameters:</strong> ${details.parameters.days ? `${details.parameters.days} days` : `${details.parameters.start_date} to ${details.parameters.end_date}`}<br>
+                        <strong>Status:</strong> ${details.status}<br>
+                        <strong>Triggered:</strong> ${new Date(details.triggered_at).toLocaleString()}<br><br>
+                        <strong>Monitor progress at:</strong><br>
                         <a href="https://github.com/${details.workflow}/actions" target="_blank" style="color: #2196F3;">https://github.com/${details.workflow}/actions</a><br><br>
-                        🔄 <strong>The workflow is now running...</strong><br>
-                        📋 Check the link above for real-time progress and results<br>
-                        ⏰ Scraping typically takes 2-5 minutes to complete
+                        <strong>The workflow is now running.</strong><br>
+                        Check the link above for real-time progress and results.<br>
+                        Scraping typically takes 2–5 minutes to complete.
                     `, 'success');
                 } else {
                     const errorDetails = data.details ? `<br><br><strong>Details:</strong><br><pre>${JSON.stringify(data.details, null, 2)}</pre>` : '';
-                    showResult(`❌ <strong>Failed to trigger scraping:</strong><br>${data.error}${errorDetails}`, 'error');
+                    showResult(`<strong>Failed to trigger scraping:</strong><br>${data.error}${errorDetails}`, 'error');
                 }
             } catch (error) {
-                showResult(`❌ <strong>Network error:</strong><br>${error.message}`, 'error');
+                showResult(`<strong>Network error:</strong><br>${error.message}`, 'error');
             }
         }
         
@@ -470,10 +1053,10 @@
                 if (response.ok && data.success) {
                     displayRewards(data);
                 } else {
-                    showResult(`❌ <strong>Failed to query rewards:</strong><br>${data.error}`, 'error');
+                    showResult(`<strong>Failed to query rewards:</strong><br>${data.error}`, 'error');
                 }
             } catch (error) {
-                showResult(`❌ <strong>Network error:</strong><br>${error.message}`, 'error');
+                showResult(`<strong>Network error:</strong><br>${error.message}`, 'error');
             }
         }
         
@@ -562,11 +1145,11 @@
             rewardsDisplay.style.display = 'block';
             
             showResult(`
-                ✅ <strong>Query completed successfully!</strong><br><br>
-                   <strong>Device:</strong> ${data.device_name || 'Unknown'}<br>
-                   <strong>Period:</strong> ${data.query_parameters.start_date || 'Last ' + (data.query_parameters.days || 'All')} ${data.query_parameters.days ? 'days' : ''} ${data.query_parameters.end_date ? 'to ' + data.query_parameters.end_date : ''}<br>
-                   <strong>Records:</strong> ${data.count} daily entries<br>
-                   <strong>Filter:</strong> ${data.query_parameters.reward_type}
+                <strong>Query completed successfully.</strong><br><br>
+                <strong>Device:</strong> ${data.device_name || 'Unknown'}<br>
+                <strong>Period:</strong> ${data.query_parameters.start_date || 'Last ' + (data.query_parameters.days || 'All')} ${data.query_parameters.days ? 'days' : ''} ${data.query_parameters.end_date ? 'to ' + data.query_parameters.end_date : ''}<br>
+                <strong>Records:</strong> ${data.count} daily entries<br>
+                <strong>Filter:</strong> ${data.query_parameters.reward_type}
             `, 'info');
         }
         
@@ -613,28 +1196,24 @@
                 // For now, we'll show a helpful message
                 hideLoading();
                 showResult(`
-                    🔍 <strong>How to check if your scrape completed:</strong><br><br>
-                    
+                    <strong>How to check if your scrape completed:</strong><br><br>
                     <strong>Method 1: GitHub Actions</strong><br>
-                    • Go to your repository's Actions tab<br>
-                    • Look for "Helium Rewards Scraper" workflows<br>
-                    • Check the status (✅ success, ❌ failed, 🟡 running)<br><br>
-                    
-                    <strong>Method 2: Query Rewards Data</strong><br>
-                    • Use the "Query Rewards" section above<br>
-                    • If data is returned, the scrape worked<br>
-                    • Recent scrapes will show in the results<br><br>
-                    
-                    <strong>Method 3: Database Check</strong><br>
-                    • Successful scrapes create entries in helium_rewards_daily table<br>
-                    • Check your Supabase dashboard for recent entries<br><br>
-                    
+                    - Go to your repository's Actions tab<br>
+                    - Look for "Helium Rewards Scraper" workflows<br>
+                    - Check the status (success / failed / running)<br><br>
+                    <strong>Method 2: Query rewards</strong><br>
+                    - Use the "Query rewards" section above<br>
+                    - If data is returned, the scrape worked<br>
+                    - Recent scrapes will show in the results<br><br>
+                    <strong>Method 3: Database</strong><br>
+                    - Successful scrapes create entries in <code>helium_rewards_daily</code><br>
+                    - Check your Supabase dashboard for recent entries<br><br>
                     <strong>Device:</strong> ${deviceKey.substring(0, 60)}...<br>
-                    <strong>Tip:</strong> Scraping usually takes 2-5 minutes to complete
+                    <strong>Tip:</strong> Scraping usually takes 2–5 minutes to complete.
                 `, 'info');
                 
             } catch (error) {
-                showResult(`❌ <strong>Error:</strong><br>${error.message}`, 'error');
+                showResult(`<strong>Error:</strong><br>${error.message}`, 'error');
             }
         }
         
