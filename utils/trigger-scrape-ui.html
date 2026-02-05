@@ -5,264 +5,206 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Helium Rewards API - Scraping Interface</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            color-scheme: light;
+            --bg: #f6f7f9;
+            --panel: #ffffff;
+            --text: #111827;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --soft: #f3f4f6;
+            --primary: #2563eb;
+            --success: #16a34a;
+            --radius: 12px;
         }
-        
+
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            background: var(--bg);
+            color: var(--text);
+            padding: 16px;
         }
-        
         .container {
-            max-width: 1000px;
+            max-width: 980px;
             margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
             overflow: hidden;
         }
-        
         .header {
-            background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border);
         }
-        
         .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+            margin: 0;
+            font-size: 16px;
             font-weight: 700;
+            letter-spacing: -0.01em;
         }
-        
         .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
+            margin: 4px 0 0;
+            font-size: 13px;
+            color: var(--muted);
         }
-        
-        .content {
-            padding: 40px;
-        }
-        
-        .section {
-            margin-bottom: 40px;
-        }
-        
+        .content { padding: 18px; }
+        .section { margin-bottom: 18px; }
+        .section:last-child { margin-bottom: 0; }
         .section h2 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.5rem;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
+            margin: 0 0 10px;
+            font-size: 13px;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            color: var(--muted);
         }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
+
+        .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .form-group { margin-bottom: 12px; }
+        .form-row .form-group { flex: 1; min-width: 220px; }
+
         label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            font-size: 13px;
             font-weight: 600;
-            color: #555;
+            color: var(--text);
         }
-        
         input, textarea, select {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
             font-size: 14px;
-            transition: border-color 0.3s ease;
+            background: white;
         }
-        
+        textarea { min-height: 70px; resize: vertical; }
         input:focus, textarea:focus, select:focus {
             outline: none;
-            border-color: #FF6B35;
+            border-color: rgba(37, 99, 235, 0.7);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
         }
-        
+
         .button {
-            background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+            appearance: none;
+            border: 1px solid rgba(0,0,0,0);
+            background: var(--primary);
             color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
             font-weight: 600;
-            transition: transform 0.2s ease;
-            margin-right: 10px;
-            margin-bottom: 10px;
+            font-size: 13px;
+            padding: 9px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-bottom: 8px;
         }
-        
-        .button:hover {
-            transform: translateY(-2px);
-        }
-        
-        .button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .button.success {
-            background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
-        }
-        
-        .button.info {
-            background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%);
-        }
-        
-        .form-row {
-            display: flex;
-            gap: 20px;
-        }
-        
-        .form-row .form-group {
-            flex: 1;
-        }
-        
+        .button:hover { filter: brightness(0.97); }
+        .button:active { filter: brightness(0.94); }
+        .button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .button.success { background: var(--success); }
+        .button.info { background: var(--soft); color: var(--text); border-color: var(--border); }
+
         .result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
             display: none;
+            margin-top: 12px;
+            border-radius: 10px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            background: white;
+            font-size: 13px;
         }
-        
-        .result.success {
-            background: #e8f5e8;
-            color: #2e7d32;
-            border: 1px solid #4caf50;
-        }
-        
-        .result.error {
-            background: #ffebee;
-            color: #c62828;
-            border: 1px solid #f44336;
-        }
-        
-        .result.info {
-            background: #e3f2fd;
-            color: #1565c0;
-            border: 1px solid #2196F3;
-        }
-        
+        .result.success { border-color: rgba(22,163,74,0.35); background: rgba(22,163,74,0.08); }
+        .result.error { border-color: rgba(220,38,38,0.35); background: rgba(220,38,38,0.08); }
+        .result.info { border-color: rgba(37,99,235,0.35); background: rgba(37,99,235,0.08); }
+
         .loading {
             display: none;
-            text-align: center;
-            padding: 20px;
+            margin: 10px 0;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--muted);
+            font-size: 13px;
+            background: white;
         }
-        
         .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #FF6B35;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(17,24,39,0.15);
+            border-top-color: rgba(17,24,39,0.5);
+            border-radius: 999px;
+            animation: spin 0.8s linear infinite;
+            vertical-align: -2px;
+            margin-right: 8px;
         }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         .rewards-display {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            background: white;
+            margin-top: 12px;
         }
-        
         .rewards-summary {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin: 10px 0 14px;
         }
-        
         .summary-card {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
             background: white;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
-        
-        .summary-card .value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #FF6B35;
-        }
-        
-        .summary-card .label {
-            font-size: 0.9rem;
-            color: #666;
-            margin-top: 5px;
-        }
-        
+        .summary-card .value { font-size: 16px; font-weight: 800; }
+        .summary-card .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
         .rewards-table {
             background: white;
-            border-radius: 8px;
+            border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
         }
-        
-        .rewards-table table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
+        .rewards-table table { width: 100%; border-collapse: collapse; }
         .rewards-table th {
-            background: #f8f9fa;
-            padding: 12px;
+            background: var(--soft);
+            padding: 10px;
             text-align: left;
-            font-weight: 600;
-            color: #333;
-            border-bottom: 1px solid #dee2e6;
-        }
-        
-        .rewards-table td {
-            padding: 12px;
-            border-bottom: 1px solid #f1f3f4;
-        }
-        
-        .rewards-table tr:hover {
-            background: #f8f9fa;
-        }
-        
-        .api-info {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-            border-left: 4px solid #ff9800;
-        }
-        
-        .api-info h3 {
-            color: #f57c00;
-            margin-bottom: 10px;
-        }
-        
-        .api-info code {
-            background: #e8e8e8;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-        }
-        
-        .device-key {
-            font-family: 'Courier New', monospace;
+            font-weight: 700;
             font-size: 12px;
-            background: #f1f3f4;
-            padding: 8px;
-            border-radius: 4px;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+        }
+        .rewards-table td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            vertical-align: top;
+        }
+        .rewards-table tr:last-child td { border-bottom: none; }
+
+        .api-info {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            background: white;
+            margin-top: 14px;
+        }
+        .api-info h3 { margin: 0 0 8px; font-size: 14px; }
+        .api-info code { background: var(--soft); border: 1px solid var(--border); padding: 2px 6px; border-radius: 8px; }
+
+        .device-key {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            background: var(--soft);
+            border: 1px solid var(--border);
+            padding: 8px 10px;
+            border-radius: 10px;
             word-break: break-all;
         }
     </style>
@@ -270,14 +212,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 Helium Rewards API</h1>
-            <p>Scraping & Query Interface</p>
+            <h1>Helium Rewards API</h1>
+            <p>Scrape + query (debug UI)</p>
         </div>
         
         <div class="content">
             <!-- API Configuration -->
             <div class="section">
-                <h2>🔧 API Configuration</h2>
+                <h2>API Configuration</h2>
                 <div class="form-group">
                     <label for="apiUrl">API Base URL:</label>
                     <input type="url" id="apiUrl" placeholder="https://your-api-domain.vercel.app" value="https://helium-rewards-api.vercel.app">
@@ -286,7 +228,7 @@
             
             <!-- Trigger Scraping -->
             <div class="section">
-                <h2>🚀 Trigger Scraping</h2>
+                <h2>Trigger scraping</h2>
                 <div class="form-group">
                     <label for="scrapeDeviceKey">Device Key:</label>
                     <input type="text" id="scrapeDeviceKey" placeholder="1trSusefVoBGpZF78uAGhqfNNi9jHeZwgfn8WnnGgGhzJJDo1Xer8uQDEryJ7Lu3XKH44M7qReXgGjegznjKa6AHMjJMeNQrcZJViYc7oqwoBHygSWiC5qVKyWgnjQDWsDgvphnRTkYKbZESJrRTMP89TBKz5zgnt4N8JKQaQPNMqv3A1579TpbF2xYM1gBhTDf5PFyNixg5tHKC4WZnJnBxivSEezPiHbewL2NPpsv5z1bEeH8NngitV6aNB3AmC7GjSwn6Zn2TCTubajt9CLmg6E5ap12MGKUHJFtJGnuYczVJ1o1pouqggU9XzEasW3MZFH9KVMo97ukPGv4yTpsG4UrDmQk23s34pfFLWH3sxi">
@@ -307,13 +249,13 @@
                     </div>
                 </div>
                 
-                <button class="button" onclick="triggerScrape()" id="triggerBtn">🚀 Trigger GitHub Action</button>
-                <button class="button info" onclick="clearScrapeForm()">🧹 Clear Form</button>
+                <button class="button" onclick="triggerScrape()" id="triggerBtn">Trigger GitHub Action</button>
+                <button class="button info" onclick="clearScrapeForm()">Clear</button>
             </div>
             
             <!-- Query Rewards -->
             <div class="section">
-                <h2>📊 Query Rewards Data</h2>
+                <h2>Query rewards</h2>
                 <div class="form-group">
                     <label for="queryDeviceKey">Device Key:</label>
                     <input type="text" id="queryDeviceKey" placeholder="Device key to query">
@@ -343,10 +285,10 @@
                     </select>
                 </div>
                 
-                <button class="button success" onclick="queryRewards()" id="queryBtn">📊 Query Rewards</button>
-                <button class="button info" onclick="clearQueryForm()">🧹 Clear Form</button>
-                <button class="button info" onclick="copyFromScrapeForm()">📋 Copy from Scrape Form</button>
-                <button class="button" onclick="checkRecentScrapes()">🔍 Check Recent Scrapes</button>
+                <button class="button success" onclick="queryRewards()" id="queryBtn">Query</button>
+                <button class="button info" onclick="clearQueryForm()">Clear</button>
+                <button class="button info" onclick="copyFromScrapeForm()">Copy from scrape</button>
+                <button class="button info" onclick="checkRecentScrapes()">Check recent scrapes</button>
             </div>
             
             <!-- Loading -->
@@ -360,10 +302,10 @@
             
             <!-- Rewards Display -->
             <div class="rewards-display" id="rewardsDisplay" style="display: none;">
-                <h3>📈 Rewards Summary</h3>
+                <h3>Rewards summary</h3>
                 <div class="rewards-summary" id="rewardsSummary"></div>
                 
-                <h3>📋 Daily Rewards</h3>
+                <h3>Daily rewards</h3>
                 <div class="rewards-table">
                     <table>
                         <thead>
@@ -371,7 +313,10 @@
                                 <th>Date</th>
                                 <th>Day</th>
                                 <th>DC Rewards</th>
-                                <th>Formatted</th>
+                                <th>HNT (DC)</th>
+                                <th>Base PoC</th>
+                                <th>Boosted PoC</th>
+                                <th>Total PoC</th>
                                 <th>Entries</th>
                                 <th>Type</th>
                             </tr>
@@ -384,7 +329,7 @@
             
             <!-- API Information -->
             <div class="api-info">
-                <h3>📡 API Usage</h3>
+                <h3>API usage</h3>
                 <p><strong>Trigger Scraping:</strong> <code>POST /api/trigger-scrape</code></p>
                 <p><strong>Query Rewards:</strong> <code>GET /api/helium-rewards?device_key=...&days=30</code></p>
                 <p><strong>Date Range Query:</strong> <code>GET /api/helium-rewards?device_key=...&start=2025-01-01&end=2025-01-31</code></p>
@@ -543,21 +488,48 @@
             let summaryHtml = '';
             if (data.summary) {
                 const s = data.summary;
+                const dcRaw = Number(s.total_dc_rewards) || 0;
+                const pocRaw = Number(s.total_poc_rewards) || 0;
+                const totalRaw = dcRaw + pocRaw;
+                const formatReward = function (n) { return (n / 1e8).toFixed(2); };
+                const basePocRaw = Number(s.total_base_poc_rewards) || 0;
+                const boostedPocRaw = Number(s.total_boosted_poc_rewards) || 0;
+                const pocFormatted = s.total_poc_formatted != null ? String(s.total_poc_formatted) : formatReward(pocRaw);
+                const totalFormatted = s.total_rewards_formatted != null ? String(s.total_rewards_formatted) : formatReward(totalRaw);
+                const avgDailyDc = Number(s.average_daily_dc) || 0;
+                const avgDailyPoc = Number(s.average_daily_poc) || 0;
+                const avgDailyHntFormatted = formatReward(avgDailyDc + avgDailyPoc);
                 summaryHtml = `
                     <div class="summary-card">
                         <div class="value">${s.total_dc_formatted || '0'}</div>
-                        <div class="label">Total DC Rewards</div>
+                        <div class="label">Total HNT Rewards</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="value">${pocFormatted}</div>
+                        <div class="label">Total POC Rewards</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="value">${formatReward(basePocRaw)}</div>
+                        <div class="label">Base PoC (Total)</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="value">${formatReward(boostedPocRaw)}</div>
+                        <div class="label">Boosted PoC (Total)</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="value">${totalFormatted}</div>
+                        <div class="label">Total Rewards (DC + POC)</div>
                     </div>
                     <div class="summary-card">
                         <div class="value">${s.active_days || 0}</div>
                         <div class="label">Active Days</div>
                     </div>
                     <div class="summary-card">
-                        <div class="value">${s.average_daily_formatted || (s.average_daily_dc?.toLocaleString() || '0')}</div>
-                        <div class="label">Avg Daily DC</div>
+                        <div class="value">${avgDailyHntFormatted}</div>
+                        <div class="label">Avg Daily HNT</div>
                     </div>
                     <div class="summary-card">
-                        <div class="value">${s.uptime_percentage ? s.uptime_percentage + '%' : 'N/A'}</div>
+                        <div class="value">${s.uptime_percentage != null ? s.uptime_percentage + '%' : 'N/A'}</div>
                         <div class="label">Uptime</div>
                     </div>
                 `;
@@ -574,13 +546,16 @@
                             <td>${reward.day_of_week || 'N/A'}</td>
                             <td>${reward.reward_amount_dc.toLocaleString()}</td>
                             <td>${reward.reward_amount_formatted || 'N/A'}</td>
+                            <td>${(reward.base_poc_reward ?? 0).toLocaleString()}</td>
+                            <td>${(reward.boosted_poc_reward ?? 0).toLocaleString()}</td>
+                            <td>${(reward.total_poc_reward ?? 0).toLocaleString()}</td>
                             <td>${reward.reward_entries || 1}</td>
                             <td>${reward.reward_type}</td>
                         </tr>
                     `;
                 });
             } else {
-                tableHtml = '<tr><td colspan="6" style="text-align: center;">No rewards data found</td></tr>';
+                tableHtml = '<tr><td colspan="9" style="text-align: center;">No rewards data found</td></tr>';
             }
             tableBody.innerHTML = tableHtml;
             

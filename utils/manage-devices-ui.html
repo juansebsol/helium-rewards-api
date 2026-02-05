@@ -5,442 +5,221 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Helium Rewards API - Device Management</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            color-scheme: light;
+            --bg: #f6f7f9;
+            --panel: #ffffff;
+            --text: #111827;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --soft: #f3f4f6;
+            --primary: #2563eb;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --radius: 12px;
         }
-        
+
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            background: var(--bg);
+            color: var(--text);
+            padding: 16px;
         }
-        
+
         .container {
-            max-width: 1200px;
+            max-width: 980px;
             margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
             overflow: hidden;
         }
-        
+
         .header {
-            background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border);
         }
-        
         .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+            margin: 0;
+            font-size: 16px;
             font-weight: 700;
+            letter-spacing: -0.01em;
         }
-        
         .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
+            margin: 4px 0 0;
+            font-size: 13px;
+            color: var(--muted);
         }
-        
-        .content {
-            padding: 40px;
-        }
-        
-        .section {
-            margin-bottom: 40px;
-        }
-        
+
+        .content { padding: 18px; }
+        .section { margin-bottom: 18px; }
+        .section:last-child { margin-bottom: 0; }
         .section h2 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.5rem;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
+            margin: 0 0 10px;
+            font-size: 13px;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            color: var(--muted);
         }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
+
+        .form-group { margin-bottom: 12px; }
         label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            font-size: 13px;
             font-weight: 600;
-            color: #555;
+            color: var(--text);
         }
-        
         input, textarea, select {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
             font-size: 14px;
-            transition: border-color 0.3s ease;
+            background: white;
         }
-        
+        textarea { min-height: 70px; resize: vertical; }
         input:focus, textarea:focus, select:focus {
             outline: none;
-            border-color: #2196F3;
+            border-color: rgba(37, 99, 235, 0.7);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
         }
-        
-        textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        
+
         .button {
-            background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%);
+            appearance: none;
+            border: 1px solid rgba(0,0,0,0);
+            background: var(--primary);
             color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
             font-weight: 600;
-            transition: transform 0.2s ease;
-            margin-right: 10px;
-            margin-bottom: 10px;
-        }
-        
-        .button:hover {
-            transform: translateY(-2px);
-        }
-        
-        .button.danger {
-            background: linear-gradient(135deg, #f44336 0%, #ff5722 100%);
-        }
-        
-        .button.success {
-            background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
-        }
-        
-        .section-header-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-        .section-header-row .section-title-wrap {
-            display: flex;
-            align-items: baseline;
-            gap: 8px;
-        }
-        .section-header-row .device-count-badge {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #555;
-            background: #e8e8e8;
-            padding: 4px 10px;
-            border-radius: 20px;
-        }
-        .section-header-row .toolbar {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .device-list {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 16px;
-            margin-top: 0;
-        }
-        .device-list.empty-state {
-            text-align: center;
-            color: #666;
-            padding: 32px 20px;
-        }
-        .device-item {
-            background: white;
-            border-radius: 10px;
-            padding: 16px 20px;
-            margin-bottom: 12px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-            border: 1px solid #e8e8e8;
-            border-left: 4px solid #2196F3;
-        }
-        .device-item:last-child {
-            margin-bottom: 0;
-        }
-        .device-item-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-        .device-item-name {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #333;
-        }
-        .device-item-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
             font-size: 13px;
-            color: #555;
-            margin-bottom: 10px;
+            padding: 9px 12px;
+            border-radius: 10px;
+            cursor: pointer;
         }
-        .device-item-meta span {
-            white-space: nowrap;
-        }
-        .device-key-wrap {
-            margin: 10px 0;
-        }
-        .device-key {
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            background: #f1f3f4;
-            padding: 8px 10px;
-            border-radius: 6px;
-            word-break: break-all;
-            color: #444;
-        }
-        .device-item-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #eee;
-        }
-        .device-item-actions .button {
-            margin: 0;
-        }
-        .toolbar-sep {
-            color: #999;
-            margin: 0 4px;
-        }
-        .device-item .tracked-device-cb {
-            width: auto;
-            margin: 0 12px 0 0;
-            flex-shrink: 0;
-        }
-        .device-item-inner {
-            display: flex;
-            align-items: flex-start;
-            gap: 0;
-        }
-        .device-item-content {
-            flex: 1;
-            min-width: 0;
-        }
-        .scrape-hint {
-            font-size: 12px;
-            color: #666;
-            margin-top: 6px;
-        }
-        
-        .status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-left: 10px;
-        }
-        
-        .status.active {
-            background: #e8f5e8;
-            color: #2e7d32;
-        }
-        
-        .status.inactive {
-            background: #ffebee;
-            color: #c62828;
-        }
-        
+        .button:hover { filter: brightness(0.97); }
+        .button:active { filter: brightness(0.94); }
+        .button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .button.danger { background: var(--danger); }
+        .button.success { background: var(--success); }
+
+        .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .row > * { margin: 0; }
+
         .result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
             display: none;
+            margin-top: 12px;
+            border-radius: 10px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            background: white;
+            font-size: 13px;
         }
-        
-        .result.success {
-            background: #e8f5e8;
-            color: #2e7d32;
-            border: 1px solid #4caf50;
-        }
-        
-        .result.error {
-            background: #ffebee;
-            color: #c62828;
-            border: 1px solid #f44336;
-        }
-        
+        .result.success { border-color: rgba(22,163,74,0.35); background: rgba(22,163,74,0.08); }
+        .result.error { border-color: rgba(220,38,38,0.35); background: rgba(220,38,38,0.08); }
+
         .loading {
             display: none;
-            text-align: center;
-            padding: 20px;
+            margin: 10px 0;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--muted);
+            font-size: 13px;
+            background: white;
         }
-        
         .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #2196F3;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(17,24,39,0.15);
+            border-top-color: rgba(17,24,39,0.5);
+            border-radius: 999px;
+            animation: spin 0.8s linear infinite;
+            vertical-align: -2px;
+            margin-right: 8px;
         }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .api-info {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-            border-left: 4px solid #ff9800;
-        }
-        
-        .api-info h3 {
-            color: #f57c00;
-            margin-bottom: 10px;
-        }
-        
-        .api-info code {
-            background: #e8e8e8;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .add-mode-switcher {
             display: flex;
-            gap: 0;
-            margin-bottom: 0;
-            border-radius: 10px 10px 0 0;
+            border: 1px solid var(--border);
+            border-radius: 10px;
             overflow: hidden;
-            border: 1px solid #e1e5e9;
-            border-bottom: none;
-            background: #eee;
+            background: var(--soft);
+            margin-bottom: 10px;
         }
         .add-mode-switcher button {
             flex: 1;
-            padding: 12px 16px;
             border: none;
-            background: #eee;
-            color: #555;
-            font-size: 14px;
-            font-weight: 600;
+            background: transparent;
+            padding: 10px 12px;
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--muted);
             cursor: pointer;
-            transition: background 0.2s, color 0.2s;
-        }
-        .add-mode-switcher button:hover {
-            background: #e0e0e0;
-            color: #333;
         }
         .add-mode-switcher button.active {
-            background: #f8f9fa;
-            color: #2196F3;
-            border-bottom: 2px solid #2196F3;
-            margin-bottom: -1px;
+            background: white;
+            color: var(--text);
         }
         .add-method-panes {
-            border: 1px solid #e1e5e9;
-            border-radius: 0 0 12px 12px;
-            overflow: hidden;
-        }
-        .add-method-block {
-            margin-bottom: 0;
-            padding: 20px;
-            background: #f8f9fa;
-            border: none;
-            border-radius: 0;
-        }
-        .add-method-block.add-method-hidden {
-            display: none;
-        }
-        .add-method-title {
-            color: #333;
-            font-size: 1.1rem;
-            margin-bottom: 12px;
-        }
-        .hint-text {
-            font-size: 13px;
-            color: #666;
-            margin-bottom: 12px;
-        }
-        .row-inline {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        .row-inline input {
-            flex: 1;
-            margin-bottom: 0;
-        }
-        .wallet-loading, .wallet-error {
-            margin-top: 12px;
-        }
-        .wallet-error {
-            color: #c62828;
-        }
-        .wallet-devices-wrap {
-            margin-top: 16px;
-        }
-        .wallet-meta {
-            margin-bottom: 12px;
-            font-weight: 600;
-            color: #555;
-        }
-        .wallet-actions {
-            margin-bottom: 12px;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .wallet-devices-grid {
-            display: grid;
-            gap: 10px;
-        }
-        .wallet-device-card {
-            background: white;
-            border: 1px solid #e1e5e9;
-            border-radius: 8px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
             padding: 12px;
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
+            background: white;
         }
-        .wallet-device-card input[type="checkbox"] {
-            width: auto;
-            margin-top: 4px;
-        }
-        .wallet-device-card .name {
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-        .wallet-device-card .key {
-            font-size: 12px;
-            word-break: break-all;
-            color: #555;
-            font-family: 'Courier New', monospace;
-        }
+        .add-method-block { padding: 0; background: transparent; }
+        .add-method-hidden { display: none; }
+        .add-method-title { margin: 0 0 10px; font-size: 14px; }
+        .hint-text { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+
+        .section-header-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 10px; }
+        .device-count-badge { font-size: 12px; color: var(--muted); }
+        .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .toolbar-sep { color: var(--muted); opacity: 0.5; }
+
+        .device-list { border: 1px solid var(--border); border-radius: 10px; background: white; }
+        .device-list.empty-state { padding: 14px; color: var(--muted); font-size: 13px; }
+        .device-item { padding: 12px; border-top: 1px solid var(--border); }
+        .device-item:first-child { border-top: none; }
+        .device-item-inner { display: flex; gap: 10px; align-items: flex-start; }
+        .tracked-device-cb { margin-top: 3px; }
+        .device-item-header { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+        .device-item-name { font-weight: 700; }
+        .status { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+        .status.active { background: rgba(22,163,74,0.08); border-color: rgba(22,163,74,0.25); color: #166534; }
+        .status.inactive { background: rgba(220,38,38,0.08); border-color: rgba(220,38,38,0.25); color: #991b1b; }
+        .device-item-meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin: 6px 0; }
+        .device-key { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; background: var(--soft); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; word-break: break-all; }
+        .device-item-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+        .scrape-hint { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+
+        .wallet-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .wallet-devices-grid { display: grid; gap: 8px; }
+        .wallet-device-card { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--border); border-radius: 10px; padding: 10px; background: white; }
+        .wallet-device-card .name { font-weight: 700; margin-bottom: 4px; }
+        .wallet-device-card .key { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; color: var(--muted); word-break: break-all; }
+
+        .api-info { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: white; }
+        .api-info h3 { margin: 0 0 8px; font-size: 14px; }
+        .api-info code { background: var(--soft); border: 1px solid var(--border); padding: 2px 6px; border-radius: 8px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 Helium Rewards API</h1>
-            <p>Device Management Interface</p>
+            <h1>Helium Rewards API</h1>
+            <p>Device management (debug UI)</p>
         </div>
         
         <div class="content">
             <!-- API Configuration -->
             <div class="section">
-                <h2>🔧 API Configuration</h2>
+                <h2>API Configuration</h2>
                 <div class="form-group">
                     <label for="apiUrl">API Base URL:</label>
                     <input type="url" id="apiUrl" placeholder="https://your-api-domain.vercel.app" value="https://helium-rewards-api.vercel.app">
@@ -449,7 +228,7 @@
             
             <!-- Add Device -->
             <div class="section">
-                <h2>➕ Add Device to Tracking</h2>
+                <h2>Add device</h2>
                 <div class="add-mode-switcher">
                     <button type="button" class="active" id="addModeKeyBtn" onclick="setAddMode('key')">By device key</button>
                     <button type="button" id="addModeWalletBtn" onclick="setAddMode('wallet')">By wallet</button>
@@ -502,7 +281,7 @@
             <div class="section">
                 <div class="section-header-row">
                     <div class="section-title-wrap">
-                        <h2 style="margin-bottom: 0;">📋 Tracked Devices</h2>
+                        <h2 style="margin-bottom: 0;">Tracked devices</h2>
                         <span class="device-count-badge" id="deviceCount">(0)</span>
                     </div>
                     <div class="toolbar">
@@ -511,7 +290,7 @@
                         <span class="toolbar-sep">|</span>
                         <button class="button" onclick="selectAllTrackedDevices(true)">Select all</button>
                         <button class="button" onclick="selectAllTrackedDevices(false)">Deselect all</button>
-                        <button class="button danger" onclick="removeSelectedTrackedDevices()" title="Remove selected devices from tracking">🗑 Remove selected</button>
+                        <button class="button danger" onclick="removeSelectedTrackedDevices()" title="Remove selected devices from tracking">Remove selected</button>
                     </div>
                 </div>
                 <div class="loading" id="devicesLoading">
@@ -525,7 +304,7 @@
             
             <!-- Trigger Scraping -->
             <div class="section">
-                <h2>🚀 Trigger Scraping</h2>
+                <h2>Trigger scraping</h2>
                 <p class="scrape-hint">Runs a one-off scrape for rewards. Use "Use in Trigger Scraping" on a device above to fill the key, or paste a key manually.</p>
                 <div class="form-group">
                     <label for="scrapeDeviceKey">Device Key:</label>
@@ -543,7 +322,7 @@
             
             <!-- API Information -->
             <div class="api-info">
-                <h3>📡 API Endpoints</h3>
+                <h3>API endpoints</h3>
                 <p><strong>List Devices:</strong> <code>GET /api/manage-devices</code></p>
                 <p><strong>Add Device:</strong> <code>POST /api/manage-devices</code></p>
                 <p><strong>Remove Device:</strong> <code>DELETE /api/manage-devices</code></p>
