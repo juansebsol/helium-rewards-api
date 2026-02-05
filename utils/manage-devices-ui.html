@@ -117,34 +117,124 @@
             background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
         }
         
+        .section-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .section-header-row .section-title-wrap {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+        .section-header-row .device-count-badge {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #555;
+            background: #e8e8e8;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        .section-header-row .toolbar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
         .device-list {
             background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 0;
         }
-        
+        .device-list.empty-state {
+            text-align: center;
+            color: #666;
+            padding: 32px 20px;
+        }
         .device-item {
             background: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            border: 1px solid #e8e8e8;
             border-left: 4px solid #2196F3;
         }
-        
         .device-item:last-child {
             margin-bottom: 0;
         }
-        
+        .device-item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .device-item-name {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #333;
+        }
+        .device-item-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        .device-item-meta span {
+            white-space: nowrap;
+        }
+        .device-key-wrap {
+            margin: 10px 0;
+        }
         .device-key {
             font-family: 'Courier New', monospace;
-            font-size: 12px;
+            font-size: 11px;
             background: #f1f3f4;
-            padding: 8px;
-            border-radius: 4px;
-            margin: 10px 0;
+            padding: 8px 10px;
+            border-radius: 6px;
             word-break: break-all;
+            color: #444;
+        }
+        .device-item-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+        .device-item-actions .button {
+            margin: 0;
+        }
+        .toolbar-sep {
+            color: #999;
+            margin: 0 4px;
+        }
+        .device-item .tracked-device-cb {
+            width: auto;
+            margin: 0 12px 0 0;
+            flex-shrink: 0;
+        }
+        .device-item-inner {
+            display: flex;
+            align-items: flex-start;
+            gap: 0;
+        }
+        .device-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .scrape-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
         }
         
         .status {
@@ -225,6 +315,119 @@
             border-radius: 4px;
             font-family: 'Courier New', monospace;
         }
+
+        .add-mode-switcher {
+            display: flex;
+            gap: 0;
+            margin-bottom: 0;
+            border-radius: 10px 10px 0 0;
+            overflow: hidden;
+            border: 1px solid #e1e5e9;
+            border-bottom: none;
+            background: #eee;
+        }
+        .add-mode-switcher button {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            background: #eee;
+            color: #555;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .add-mode-switcher button:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .add-mode-switcher button.active {
+            background: #f8f9fa;
+            color: #2196F3;
+            border-bottom: 2px solid #2196F3;
+            margin-bottom: -1px;
+        }
+        .add-method-panes {
+            border: 1px solid #e1e5e9;
+            border-radius: 0 0 12px 12px;
+            overflow: hidden;
+        }
+        .add-method-block {
+            margin-bottom: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 0;
+        }
+        .add-method-block.add-method-hidden {
+            display: none;
+        }
+        .add-method-title {
+            color: #333;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+        }
+        .hint-text {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+        .row-inline {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .row-inline input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .wallet-loading, .wallet-error {
+            margin-top: 12px;
+        }
+        .wallet-error {
+            color: #c62828;
+        }
+        .wallet-devices-wrap {
+            margin-top: 16px;
+        }
+        .wallet-meta {
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #555;
+        }
+        .wallet-actions {
+            margin-bottom: 12px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .wallet-devices-grid {
+            display: grid;
+            gap: 10px;
+        }
+        .wallet-device-card {
+            background: white;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .wallet-device-card input[type="checkbox"] {
+            width: auto;
+            margin-top: 4px;
+        }
+        .wallet-device-card .name {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .wallet-device-card .key {
+            font-size: 12px;
+            word-break: break-all;
+            color: #555;
+            font-family: 'Courier New', monospace;
+        }
     </style>
 </head>
 <body>
@@ -247,43 +450,86 @@
             <!-- Add Device -->
             <div class="section">
                 <h2>➕ Add Device to Tracking</h2>
-                <div class="form-group">
-                    <label for="deviceKey">Device Key:</label>
-                    <input type="text" id="deviceKey" placeholder="1trSusefVoBGpZF78uAGhqfNNi9jHeZwgfn8WnnGgGhzJJDo1Xer8uQDEryJ7Lu3XKH44M7qReXgGjegznjKa6AHMjJMeNQrcZJViYc7oqwoBHygSWiC5qVKyWgnjQDWsDgvphnRTkYKbZESJrRTMP89TBKz5zgnt4N8JKQaQPNMqv3A1579TpbF2xYM1gBhTDf5PFyNixg5tHKC4WZnJnBxivSEezPiHbewL2NPpsv5z1bEeH8NngitV6aNB3AmC7GjSwn6Zn2TCTubajt9CLmg6E5ap12MGKUHJFtJGnuYczVJ1o1pouqggU9XzEasW3MZFH9KVMo97ukPGv4yTpsG4UrDmQk23s34pfFLWH3sxi">
+                <div class="add-mode-switcher">
+                    <button type="button" class="active" id="addModeKeyBtn" onclick="setAddMode('key')">By device key</button>
+                    <button type="button" id="addModeWalletBtn" onclick="setAddMode('wallet')">By wallet</button>
                 </div>
-                <div class="form-group">
-                    <label for="deviceName">Device Name (optional):</label>
-                    <input type="text" id="deviceName" placeholder="My Helium Hotspot">
+                <div class="add-method-panes">
+                    <!-- Add by device key -->
+                    <div class="add-method-block" id="addPaneKey">
+                        <h3 class="add-method-title">By device key</h3>
+                        <div class="form-group">
+                            <label for="deviceKey">Device Key:</label>
+                            <input type="text" id="deviceKey" placeholder="1trSusefVoBGpZF78uAGhqfNNi9jHeZwgfn8WnnGgGhzJJDo1Xer8uQDEryJ7Lu3XKH44M7qReXgGjegznjKa6AHMjJMeNQrcZJViYc7oqwoBHygSWiC5qVKyWgnjQDWsDgvphnRTkYKbZESJrRTMP89TBKz5zgnt4N8JKQaQPNMqv3A1579TpbF2xYM1gBhTDf5PFyNixg5tHKC4WZnJnBxivSEezPiHbewL2NPpsv5z1bEeH8NngitV6aNB3AmC7GjSwn6Zn2TCTubajt9CLmg6E5ap12MGKUHJFtJGnuYczVJ1o1pouqggU9XzEasW3MZFH9KVMo97ukPGv4yTpsG4UrDmQk23s34pfFLWH3sxi">
+                        </div>
+                        <div class="form-group">
+                            <label for="deviceName">Device Name (optional):</label>
+                            <input type="text" id="deviceName" placeholder="My Helium Hotspot">
+                        </div>
+                        <div class="form-group">
+                            <label for="deviceNotes">Notes (optional):</label>
+                            <textarea id="deviceNotes" placeholder="Additional notes about this device..."></textarea>
+                        </div>
+                        <button class="button success" onclick="addDevice()">Add Device</button>
+                    </div>
+                    <!-- Add by wallet -->
+                    <div class="add-method-block add-method-hidden" id="addPaneWallet">
+                        <h3 class="add-method-title">By wallet – select devices</h3>
+                        <p class="hint-text">Fetch hotspots for a wallet, then add selected devices to tracking.</p>
+                        <div class="form-group row-inline">
+                            <input type="text" id="walletKey" placeholder="Wallet public key" class="wallet-input">
+                            <button class="button" id="fetchWalletBtn" onclick="fetchDevicesByWallet()">Fetch devices</button>
+                        </div>
+                        <div class="wallet-loading" id="walletLoading" style="display: none;">
+                            <div class="spinner"></div>
+                            Loading devices for wallet…
+                        </div>
+                        <div class="wallet-error" id="walletError" style="display: none;"></div>
+                        <div class="wallet-devices-wrap" id="walletDevicesWrap" style="display: none;">
+                            <div class="wallet-meta" id="walletMeta"></div>
+                            <div class="wallet-actions">
+                                <button class="button success" onclick="addSelectedWalletDevices()">Add selected to tracking</button>
+                                <button class="button" onclick="selectAllWalletDevices(true)">Select all</button>
+                                <button class="button" onclick="selectAllWalletDevices(false)">Deselect all</button>
+                            </div>
+                            <div class="wallet-devices-grid" id="walletDevicesGrid"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="deviceNotes">Notes (optional):</label>
-                    <textarea id="deviceNotes" placeholder="Additional notes about this device..."></textarea>
-                </div>
-                <button class="button success" onclick="addDevice()">Add Device</button>
             </div>
             
             <!-- Device List -->
             <div class="section">
-                <h2>📋 Tracked Devices</h2>
-                <button class="button" onclick="loadDevices()">Refresh List</button>
-                <button class="button" onclick="loadDevicesWithStats()">Load with Stats</button>
-                
+                <div class="section-header-row">
+                    <div class="section-title-wrap">
+                        <h2 style="margin-bottom: 0;">📋 Tracked Devices</h2>
+                        <span class="device-count-badge" id="deviceCount">(0)</span>
+                    </div>
+                    <div class="toolbar">
+                        <button class="button" onclick="loadDevices()">Refresh List</button>
+                        <button class="button" onclick="loadDevicesWithStats()">Load with Stats</button>
+                        <span class="toolbar-sep">|</span>
+                        <button class="button" onclick="selectAllTrackedDevices(true)">Select all</button>
+                        <button class="button" onclick="selectAllTrackedDevices(false)">Deselect all</button>
+                        <button class="button danger" onclick="removeSelectedTrackedDevices()" title="Remove selected devices from tracking">🗑 Remove selected</button>
+                    </div>
+                </div>
                 <div class="loading" id="devicesLoading">
                     <div class="spinner"></div>
                     Loading devices...
                 </div>
-                
                 <div class="device-list" id="deviceList">
-                    <p>Click "Refresh List" to load tracked devices</p>
+                    <p class="empty-state">Click "Refresh List" to load tracked devices</p>
                 </div>
             </div>
             
             <!-- Trigger Scraping -->
             <div class="section">
                 <h2>🚀 Trigger Scraping</h2>
+                <p class="scrape-hint">Runs a one-off scrape for rewards. Use "Use in Trigger Scraping" on a device above to fill the key, or paste a key manually.</p>
                 <div class="form-group">
                     <label for="scrapeDeviceKey">Device Key:</label>
-                    <input type="text" id="scrapeDeviceKey" placeholder="Device key to scrape">
+                    <input type="text" id="scrapeDeviceKey" placeholder="Device key to scrape (or pick from list above)">
                 </div>
                 <div class="form-group">
                     <label for="scrapeDays">Days to Look Back:</label>
@@ -308,8 +554,131 @@
     </div>
     
     <script>
+        const WALLET_ENTITIES_URL = 'https://entities.nft.helium.io/v2/wallet';
+
         function getApiUrl() {
             return document.getElementById('apiUrl').value.replace(/\/$/, '');
+        }
+
+        function setAddMode(mode) {
+            var isKey = mode === 'key';
+            document.getElementById('addModeKeyBtn').classList.toggle('active', isKey);
+            document.getElementById('addModeWalletBtn').classList.toggle('active', !isKey);
+            document.getElementById('addPaneKey').classList.toggle('add-method-hidden', !isKey);
+            document.getElementById('addPaneWallet').classList.toggle('add-method-hidden', isKey);
+        }
+
+        function getEntityKeyString(hotspot) {
+            const attr = hotspot?.attributes?.find(
+                (a) => a?.trait_type === 'entity_key_string'
+            );
+            return attr?.value ?? hotspot?.entity_key_str ?? '';
+        }
+
+        let walletFetchedDevices = [];
+
+        async function fetchDevicesByWallet() {
+            const wallet = document.getElementById('walletKey').value.trim();
+            if (!wallet) {
+                showResult('Enter a wallet public key', false);
+                return;
+            }
+            const loading = document.getElementById('walletLoading');
+            const errEl = document.getElementById('walletError');
+            const wrap = document.getElementById('walletDevicesWrap');
+            const btn = document.getElementById('fetchWalletBtn');
+
+            loading.style.display = 'block';
+            errEl.style.display = 'none';
+            wrap.style.display = 'none';
+            walletFetchedDevices = [];
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(
+                    `${WALLET_ENTITIES_URL}/${encodeURIComponent(wallet)}`,
+                    { headers: { Accept: 'application/json' } }
+                );
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const hotspots = data.hotspots || [];
+                walletFetchedDevices = hotspots.map((h) => ({
+                    name: h.name || 'Unnamed',
+                    entity_key_string: getEntityKeyString(h),
+                    asset_id: h.asset_id
+                })).filter((d) => d.entity_key_string);
+
+                loading.style.display = 'none';
+                btn.disabled = false;
+
+                document.getElementById('walletMeta').textContent =
+                    `Hotspots: ${walletFetchedDevices.length}`;
+                const grid = document.getElementById('walletDevicesGrid');
+                grid.innerHTML = walletFetchedDevices.map((d, i) => `
+                    <label class="wallet-device-card">
+                        <input type="checkbox" class="wallet-device-cb" data-index="${i}">
+                        <div>
+                            <div class="name">${escapeHtml(d.name)}</div>
+                            <div class="key">${escapeHtml(d.entity_key_string)}</div>
+                        </div>
+                    </label>
+                `).join('');
+                wrap.style.display = 'block';
+            } catch (e) {
+                loading.style.display = 'none';
+                btn.disabled = false;
+                errEl.textContent = e?.message || 'Request failed';
+                errEl.style.display = 'block';
+            }
+        }
+
+        function escapeHtml(s) {
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
+
+        function selectAllWalletDevices(checked) {
+            document.querySelectorAll('.wallet-device-cb').forEach((cb) => {
+                cb.checked = checked;
+            });
+        }
+
+        async function addSelectedWalletDevices() {
+            const indexes = Array.from(document.querySelectorAll('.wallet-device-cb:checked'))
+                .map((cb) => parseInt(cb.dataset.index, 10));
+            if (!indexes.length) {
+                showResult('Select at least one device', false);
+                return;
+            }
+            const toAdd = indexes.map((i) => walletFetchedDevices[i]);
+            let added = 0;
+            let failed = 0;
+            for (const d of toAdd) {
+                try {
+                    const response = await fetch(`${getApiUrl()}/api/manage-devices`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            device_key: d.entity_key_string,
+                            device_name: d.name || undefined
+                        })
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.success) added++;
+                    else failed++;
+                } catch (_) {
+                    failed++;
+                }
+            }
+            showResult(
+                `Added ${added} device(s) to tracking.${failed ? ` ${failed} failed.` : ''}`,
+                failed === 0
+            );
+            if (added) {
+                loadDevices();
+                selectAllWalletDevices(false);
+            }
         }
         
         function showResult(message, isSuccess = true) {
@@ -369,25 +738,31 @@
             if (!confirm(`Are you sure you want to remove "${deviceName}" from tracking?`)) {
                 return;
             }
-            
+            await doRemoveDevice(deviceKey, deviceName);
+        }
+
+        async function removeDeviceByIndex(index) {
+            const d = lastDisplayedDevices[parseInt(index, 10)];
+            if (!d) return;
+            const name = d.device_name || 'Unnamed Device';
+            if (!confirm(`Are you sure you want to remove "${name}" from tracking?`)) return;
+            const key = d.device_key_full || d.device_key;
+            if (key) await doRemoveDevice(key, name);
+        }
+
+        async function doRemoveDevice(deviceKey, deviceName) {
             try {
                 const response = await fetch(`${getApiUrl()}/api/manage-devices`, {
                     method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        device_key: deviceKey
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ device_key: deviceKey })
                 });
-                
                 const data = await response.json();
-                
                 if (response.ok && data.success) {
-                    showResult(`✅ Device removed successfully: ${deviceName}`, true);
+                    showResult(`✅ Device removed: ${deviceName}`, true);
                     loadDevices();
                 } else {
-                    showResult(`❌ Failed to remove device: ${data.error}`, false);
+                    showResult(`❌ Failed to remove: ${data.error}`, false);
                 }
             } catch (error) {
                 showResult(`❌ Network error: ${error.message}`, false);
@@ -421,59 +796,129 @@
         function loadDevicesWithStats() {
             loadDevices(true);
         }
-        
-        function displayDevices(devices, includeStats) {
-            const deviceList = document.getElementById('deviceList');
-            
-            if (!devices || devices.length === 0) {
-                deviceList.innerHTML = '<p>No tracked devices found. Add your first device above!</p>';
+
+        function selectAllTrackedDevices(checked) {
+            document.querySelectorAll('.tracked-device-cb').forEach(function (cb) {
+                cb.checked = checked;
+            });
+        }
+
+        async function removeSelectedTrackedDevices() {
+            const checked = document.querySelectorAll('.tracked-device-cb:checked');
+            if (!checked.length) {
+                showResult('Select one or more devices first, then click Remove selected.', false);
                 return;
             }
-            
+            const indexes = Array.from(checked).map(function (cb) { return parseInt(cb.dataset.index, 10); });
+            const devicesToRemove = indexes.map(function (i) { return lastDisplayedDevices[i]; }).filter(Boolean);
+            const n = devicesToRemove.length;
+            if (!confirm('Remove ' + n + ' device(s) from tracking? This cannot be undone.')) {
+                return;
+            }
+            let removed = 0;
+            let failed = 0;
+            for (const d of devicesToRemove) {
+                const key = d.device_key_full || d.device_key;
+                if (!key) continue;
+                try {
+                    const response = await fetch(getApiUrl() + '/api/manage-devices', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ device_key: key })
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.success) removed++;
+                    else failed++;
+                } catch (_) {
+                    failed++;
+                }
+            }
+            showResult('Removed ' + removed + ' device(s).' + (failed ? ' ' + failed + ' failed.' : ''), failed === 0);
+            loadDevices();
+        }
+        
+        let lastDisplayedDevices = [];
+
+        function setScrapeDeviceKeyByIndex(index) {
+            const d = lastDisplayedDevices[parseInt(index, 10)];
+            if (d) {
+                const key = d.device_key_full || d.device_key;
+                if (key) {
+                    document.getElementById('scrapeDeviceKey').value = key;
+                    showResult('Device key copied to Trigger Scraping below. Scroll down and click "Trigger GitHub Action" to run.', true);
+                }
+            }
+        }
+
+        function displayDevices(devices, includeStats) {
+            const deviceList = document.getElementById('deviceList');
+            const countEl = document.getElementById('deviceCount');
+            lastDisplayedDevices = devices || [];
+            const n = lastDisplayedDevices.length;
+            countEl.textContent = n === 1 ? '(1 device)' : `(${n} devices)`;
+
+            if (!devices || devices.length === 0) {
+                deviceList.className = 'device-list empty-state';
+                deviceList.innerHTML = '<p>No tracked devices. Add your first device above.</p>';
+                return;
+            }
+            deviceList.className = 'device-list';
+
             let html = '';
-            devices.forEach(device => {
-                const lastScraped = device.last_scraped 
+            devices.forEach((device, idx) => {
+                const lastScraped = device.last_scraped
                     ? new Date(device.last_scraped).toLocaleString()
                     : 'Never';
-                
+                const added = new Date(device.added_to_tracked_at).toLocaleDateString();
+                const name = escapeHtml(device.device_name || 'Unnamed Device');
+                const keyDisplay = escapeHtml(device.device_key || '');
+
                 let statsHtml = '';
-                if (includeStats && device.stats) {
-                    const stats = device.stats.last_30_days;
+                if (includeStats && device.stats && device.stats.last_30_days) {
+                    const s = device.stats.last_30_days;
                     statsHtml = `
-                        <p><strong>📊 Last 30 Days:</strong></p>
-                        <ul>
-                            <li>Total DC: ${stats.total_dc.toLocaleString()}</li>
-                            <li>Active Days: ${stats.active_days}/30</li>
-                            <li>Average Daily: ${stats.average_daily.toLocaleString()} DC</li>
-                            <li>Last Reward: ${stats.last_reward_date || 'None'}</li>
-                        </ul>
+                        <div class="device-item-meta" style="margin-top: 8px;">
+                            <span><strong>📊 Last 30d:</strong> ${Number(s.total_dc).toLocaleString()} DC</span>
+                            <span>Active: ${s.active_days}/30</span>
+                            <span>Avg/day: ${Number(s.average_daily || 0).toLocaleString()} DC</span>
+                            ${s.last_reward_date ? `<span>Last reward: ${s.last_reward_date}</span>` : ''}
+                        </div>
                     `;
                 }
-                
+
                 html += `
                     <div class="device-item">
-                        <h3>${device.device_name || 'Unnamed Device'} 
-                            <span class="status ${device.is_active ? 'active' : 'inactive'}">
-                                ${device.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                        </h3>
-                        <div class="device-key">${device.device_key}</div>
-                        <p><strong>Added:</strong> ${new Date(device.added_to_tracked_at).toLocaleDateString()}</p>
-                        <p><strong>Last Scraped:</strong> ${lastScraped}</p>
-                        ${device.notes ? `<p><strong>Notes:</strong> ${device.notes}</p>` : ''}
-                        ${statsHtml}
-                        <div style="margin-top: 15px;">
-                            <button class="button danger" onclick="removeDevice('${device.device_key_full}', '${device.device_name || 'Unnamed Device'}')">
-                                Remove from Tracking
-                            </button>
-                            <button class="button" onclick="document.getElementById('scrapeDeviceKey').value='${device.device_key_full}'">
-                                Set for Scraping
-                            </button>
+                        <div class="device-item-inner">
+                            <input type="checkbox" class="tracked-device-cb" data-index="${idx}" title="Select to remove">
+                            <div class="device-item-content">
+                                <div class="device-item-header">
+                                    <span class="device-item-name">${name}</span>
+                                    <span class="status ${device.is_active ? 'active' : 'inactive'}">
+                                        ${device.is_active ? 'Active' : 'Inactive'}
+                                    </span>
+                                </div>
+                                <div class="device-item-meta">
+                                    <span>Added: ${added}</span>
+                                    <span>Last scraped: ${lastScraped}</span>
+                                </div>
+                                ${device.notes ? `<p style="font-size: 13px; color: #555; margin: 6px 0;">${escapeHtml(device.notes)}</p>` : ''}
+                                <div class="device-key-wrap">
+                                    <div class="device-key">${keyDisplay}</div>
+                                </div>
+                                ${statsHtml}
+                                <div class="device-item-actions">
+                                    <button class="button" onclick="setScrapeDeviceKeyByIndex(${idx})" title="Copy this device key into Trigger Scraping below">
+                                        Use in Trigger Scraping
+                                    </button>
+                                    <button class="button danger" onclick="removeDeviceByIndex(${idx})">
+                                        Remove from Tracking
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
             });
-            
             deviceList.innerHTML = html;
         }
         

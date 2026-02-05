@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Helium Devices by Wallet (Demo)</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+          "Apple Color Emoji", "Segoe UI Emoji";
+        padding: 16px;
+      }
+      .app {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      input {
+        flex: 1;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(128, 128, 128, 0.35);
+        font-size: 14px;
+      }
+      button {
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(128, 128, 128, 0.35);
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .error {
+        color: #b00020;
+        margin: 8px 0 12px;
+      }
+      .meta {
+        margin: 8px 0 12px;
+      }
+      .grid {
+        display: grid;
+        gap: 10px;
+      }
+      .card {
+        border: 1px solid rgba(128, 128, 128, 0.25);
+        border-radius: 12px;
+        padding: 12px;
+        display: grid;
+        gap: 6px;
+      }
+      .name {
+        font-weight: 700;
+      }
+      .key {
+        font-size: 12px;
+        opacity: 0.8;
+        word-break: break-all;
+      }
+      .hint {
+        font-size: 12px;
+        opacity: 0.7;
+        margin-top: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- React + Babel (so we can write JSX in a single file) -->
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.development.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"
+    ></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+      const { useEffect, useMemo, useState } = React;
+
+      function getEntityKeyString(hotspot) {
+        // Prefer attributes trait_type="entity_key_string", fallback to entity_key_str
+        const attr = hotspot?.attributes?.find(
+          (a) => a?.trait_type === "entity_key_string"
+        );
+        return attr?.value ?? hotspot?.entity_key_str ?? "";
+      }
+
+      function HeliumDevicesByWallet() {
+        const [wallet, setWallet] = useState("");
+        const [data, setData] = useState(null);
+        const [loading, setLoading] = useState(false);
+        const [err, setErr] = useState("");
+
+        const url = useMemo(() => {
+          const w = wallet.trim();
+          return w
+            ? `https://entities.nft.helium.io/v2/wallet/${encodeURIComponent(w)}`
+            : "";
+        }, [wallet]);
+
+        async function load() {
+          if (!url) return;
+          setLoading(true);
+          setErr("");
+          setData(null);
+
+          try {
+            const res = await fetch(url, {
+              headers: { Accept: "application/json" },
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            setData(json);
+          } catch (e) {
+            setErr(e?.message || "Request failed");
+          } finally {
+            setLoading(false);
+          }
+        }
+
+        return (
+          <div className="app">
+            <h2 style={{ marginTop: 0 }}>Helium Devices by Wallet</h2>
+
+            <div className="row">
+              <input
+                value={wallet}
+                onChange={(e) => setWallet(e.target.value)}
+                placeholder="walletPublicKey"
+              />
+              <button onClick={load} disabled={!wallet.trim() || loading}>
+                {loading ? "Loading…" : "Fetch"}
+              </button>
+            </div>
+
+            <div className="hint">
+              Endpoint: <code>https://entities.nft.helium.io/v2/wallet/&lt;walletPublicKey&gt;</code>
+            </div>
+
+            {err && <div className="error">Error: {err}</div>}
+
+            {data && (
+              <>
+                <div className="meta">
+                  Hotspots: <b>{data.hotspots_count}</b>
+                </div>
+
+                <div className="grid">
+                  {data.hotspots?.map((h) => {
+                    const entityKeyString = getEntityKeyString(h);
+                    return (
+                      <div className="card" key={h.asset_id}>
+                        <div className="name">{h.name}</div>
+                        <div className="key">
+                          entity_key_string: <b>{entityKeyString || "—"}</b>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(
+        <HeliumDevicesByWallet />
+      );
+    </script>
+  </body>
+</html>
