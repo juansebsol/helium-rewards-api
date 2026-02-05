@@ -364,6 +364,9 @@
             max-height: 3.2em;
             overflow: hidden;
         }
+
+        /* Trigger vs query switcher */
+        .main-pane.hidden { display: none; }
     </style>
 </head>
 <body>
@@ -458,8 +461,16 @@
                 <div class="device-list empty-state" id="deviceList">No tracked devices loaded yet.</div>
             </div>
             
-            <!-- Trigger Scraping -->
             <div class="section">
+                <h2>Scrape + query</h2>
+                <div class="add-mode-switcher">
+                    <button type="button" class="active" id="mainModeTriggerBtn" onclick="setMainMode('trigger')">Trigger scraping</button>
+                    <button type="button" id="mainModeQueryBtn" onclick="setMainMode('query')">Query rewards</button>
+                </div>
+            </div>
+
+            <!-- Trigger Scraping -->
+            <div class="section main-pane" id="paneTrigger">
                 <h2>Trigger scraping</h2>
                 <div class="form-group">
                     <label for="scrapeDeviceKey">Device Key:</label>
@@ -486,7 +497,7 @@
             </div>
             
             <!-- Query Rewards -->
-            <div class="section">
+            <div class="section main-pane hidden" id="paneQuery">
                 <h2>Query rewards</h2>
                 <div class="form-group">
                     <label for="queryDeviceKey">Device Key:</label>
@@ -599,6 +610,14 @@
             document.getElementById('addModeWalletBtn').classList.toggle('active', !isKey);
             document.getElementById('addPaneKey').classList.toggle('add-method-hidden', !isKey);
             document.getElementById('addPaneWallet').classList.toggle('add-method-hidden', isKey);
+        }
+
+        function setMainMode(mode) {
+            const isTrigger = mode === 'trigger';
+            document.getElementById('mainModeTriggerBtn').classList.toggle('active', isTrigger);
+            document.getElementById('mainModeQueryBtn').classList.toggle('active', !isTrigger);
+            document.getElementById('paneTrigger').classList.toggle('hidden', !isTrigger);
+            document.getElementById('paneQuery').classList.toggle('hidden', isTrigger);
         }
 
         // -----------------------------
@@ -1219,9 +1238,11 @@
             }
         }
         
-        // Auto-focus first input on page load
+        // Init
         window.addEventListener('load', () => {
+            setMainMode('trigger');
             document.getElementById('scrapeDeviceKey').focus();
+            loadDevices();
         });
     </script>
 </body>
