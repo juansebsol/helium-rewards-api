@@ -122,6 +122,9 @@ module.exports = async (req, res) => {
 
     console.log(`✅ GitHub Action workflow triggered successfully for device: ${device_key.substring(0, 60)}...`);
 
+    const repository = process.env.GITHUB_REPOSITORY || 'juansebsol/helium-rewards-api';
+    const actions_url = `https://github.com/${repository}/actions`;
+
     // Return success response
     res.status(200).json({
       success: true,
@@ -129,6 +132,8 @@ module.exports = async (req, res) => {
       details: {
         device_key: device_key.substring(0, 60) + '...',
         workflow: 'helium-rewards-scraper',
+        repository,
+        actions_url,
         event_type: 'helium-rewards-scrape',
         status: 'queued',
         parameters: {
