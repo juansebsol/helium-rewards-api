@@ -563,10 +563,10 @@
             
             showResult(`
                 ✅ <strong>Query completed successfully!</strong><br><br>
-                📱 <strong>Device:</strong> ${data.device_name || 'Unknown'}<br>
-                📅 <strong>Period:</strong> ${data.query_parameters.start_date || 'Last ' + (data.query_parameters.days || 'All')} ${data.query_parameters.days ? 'days' : ''} ${data.query_parameters.end_date ? 'to ' + data.query_parameters.end_date : ''}<br>
-                📊 <strong>Records:</strong> ${data.count} daily entries<br>
-                🎯 <strong>Filter:</strong> ${data.query_parameters.reward_type}
+                   <strong>Device:</strong> ${data.device_name || 'Unknown'}<br>
+                   <strong>Period:</strong> ${data.query_parameters.start_date || 'Last ' + (data.query_parameters.days || 'All')} ${data.query_parameters.days ? 'days' : ''} ${data.query_parameters.end_date ? 'to ' + data.query_parameters.end_date : ''}<br>
+                   <strong>Records:</strong> ${data.count} daily entries<br>
+                   <strong>Filter:</strong> ${data.query_parameters.reward_type}
             `, 'info');
         }
         
