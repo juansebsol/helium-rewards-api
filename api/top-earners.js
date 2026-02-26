@@ -5,6 +5,13 @@
 const { supabase } = require('./_supabase');
 
 module.exports = async (req, res) => {
+  // Basic CORS (public read); tighten if needed
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
+
   try {
     const windowDays = String(req.query.window_days || req.query.window || '').trim(); // "1" | "7" | "30" | ""
     const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || '10', 10) || 10));
