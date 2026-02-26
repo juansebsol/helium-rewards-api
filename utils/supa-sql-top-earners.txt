@@ -1,0 +1,27 @@
+-- Top Earners Snapshots (Helium Rewards API)
+-- Run this in your Supabase SQL editor after the main migration.
+
+CREATE TABLE IF NOT EXISTS top_earners_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  source_prefix TEXT NOT NULL,
+  lookback_days INTEGER NOT NULL,
+  windows_days INTEGER[] NOT NULL,
+  top_n INTEGER NOT NULL,
+  results JSONB NOT NULL, -- { "1": [{device_key,total_dc,total_hnt,rank}], "7": [...], "30": [...] }
+  meta JSONB
+);
+
+CREATE INDEX IF NOT EXISTS idx_top_earners_created_at ON top_earners_snapshots(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_top_earners_prefix ON top_earners_snapshots(source_prefix);
+
+ALTER TABLE top_earners_snapshots ENABLE ROW LEVEL SECURITY;
+
+-- Service role full access
+CREATE POLICY "Service role full access on top_earners_snapshots" ON top_earners_snapshots
+  FOR ALL USING (auth.role() = 'service_role');
+
+-- Anonymous read access
+CREATE POLICY "Anonymous read access on top_earners_snapshots" ON top_earners_snapshots
+  FOR SELECT USING (true);
+

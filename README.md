@@ -211,14 +211,9 @@ GET /api/helium-rewards?device_key=...&reward_type=mobile_verified
 
 ## Web Interface
 
-### **Device Management UI**
-Open `utils/manage-devices-ui.html` in your browser for a user-friendly interface to:
-- Add/remove devices from tracking
-- View device statistics
-- Trigger scraping operations
-
-### **Scraping & Query UI**
+### **Debug UI (Device Management + Scrape + Query)**
 Open `utils/trigger-scrape-ui.html` in your browser for:
+- Add/remove devices from tracking (including wallet lookup)
 - Trigger GitHub Actions
 - Query rewards data with filters
 - View formatted results and charts
