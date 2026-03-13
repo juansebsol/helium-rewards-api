@@ -38,7 +38,7 @@
       }
 
       .container {
-        max-width: 980px;
+        max-width: 1200px;
         margin: 0 auto;
         background: var(--panel);
         border: 1px solid var(--border);
@@ -194,6 +194,7 @@
           44px
           minmax(120px, 1.3fr)
           100px
+          110px
           minmax(100px, 1fr)
           minmax(80px, 1fr)
           minmax(60px, 0.8fr)
@@ -280,6 +281,7 @@
           grid-template-columns: 44px 1fr 90px;
           grid-template-rows: auto auto;
         }
+        .col-type,
         .col-street,
         .col-city,
         .col-state,
@@ -307,11 +309,11 @@
         background: #fff;
         border-radius: 14px;
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-        width: 94vw;
-        max-width: 960px;
-        max-height: 90vh;
+        width: 98vw;
+        max-width: 1500px;
+        max-height: 92vh;
         overflow-y: auto;
-        padding: 28px 28px 20px;
+        padding: 24px 20px 18px;
         position: relative;
       }
       .chart-panel .chart-close {
@@ -435,6 +437,7 @@
               <div>Rank</div>
               <div>Name</div>
               <div class="num col-hnt">Total HNT</div>
+              <div class="col-type">Type</div>
               <div class="col-street">Street</div>
               <div class="col-city">City</div>
               <div class="col-state">State</div>
@@ -601,11 +604,22 @@
           (mobile && mobile.city) || getAttr(json, "mobile_city") || null;
         const state =
           (mobile && mobile.state) || getAttr(json, "mobile_state") || null;
+        const DEVICE_TYPE_LABELS = {
+          wifiDataOnly: "Helium Plus",
+          wifiIndoor: "Hotspot Indoor",
+        };
+        const rawType =
+          (mobile && mobile.device_type) ||
+          getAttr(json, "device_type") ||
+          getAttr(json, "mobile_device_type") ||
+          "";
+        const deviceType = DEVICE_TYPE_LABELS[rawType] || rawType;
         return {
           name: name || "Unknown",
           street: street || "",
           city: city || "",
           state: state || "",
+          device_type: deviceType,
           raw: json || null,
         };
       }
@@ -701,6 +715,7 @@
                   <div class="sub mono" data-role="asset"></div>
                 </div>
                 <div class="num mono col-hnt">${hnt}</div>
+                <div class="col-type"><div class="sub" data-role="type">...</div></div>
                 <div class="col-street"><div class="sub" data-role="street">Loading...</div></div>
                 <div class="col-city"><div class="sub" data-role="city">Loading...</div></div>
                 <div class="col-state"><div class="sub" data-role="state">Loading...</div></div>
@@ -715,7 +730,7 @@
           .join("");
 
         if (!list.length) {
-          rows.innerHTML = `<div class="trow"><div class="rank">-</div><div><div class="name">No data</div></div><div class="num mono col-hnt">0</div><div class="col-street"></div><div class="col-city"></div><div class="col-state"></div><div class="col-key"></div></div>`;
+          rows.innerHTML = `<div class="trow"><div class="rank">-</div><div><div class="name">No data</div></div><div class="num mono col-hnt">0</div><div class="col-type"></div><div class="col-street"></div><div class="col-city"></div><div class="col-state"></div><div class="col-key"></div></div>`;
         }
       }
 
@@ -738,6 +753,8 @@
         )}</a>`;
         const keyLinkEl = row.querySelector('[data-role="keyLink"]');
         if (keyLinkEl) keyLinkEl.href = entityUrl;
+        const typeEl = row.querySelector('[data-role="type"]');
+        if (typeEl) typeEl.textContent = entity?.device_type || "—";
         streetEl.textContent = street || "—";
         cityEl.textContent = city || "—";
         stateEl.textContent = state || "—";
