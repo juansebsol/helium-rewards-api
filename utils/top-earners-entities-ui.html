@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Helium Rewards API - Top Earners (Entities)</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --text: #111827;
+        --muted: #6b7280;
+        --border: #e5e7eb;
+        --soft: #f3f4f6;
+        --primary: #16a34a;
+        --radius: 12px;
+        --danger: #dc2626;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          Helvetica, Arial;
+        background: var(--bg);
+        color: var(--text);
+        padding: 16px;
+      }
+
+      .container {
+        max-width: 980px;
+        margin: 0 auto;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      .header {
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--border);
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+      .header p {
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .content {
+        padding: 18px;
+      }
+
+      .section {
+        margin-bottom: 18px;
+      }
+      .section:last-child {
+        margin-bottom: 0;
+      }
+      .section h2 {
+        margin: 0 0 10px;
+        font-size: 13px;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 14px;
+        background: white;
+      }
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: rgba(37, 99, 235, 0.7);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+      }
+
+      .row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: end;
+      }
+      .field {
+        flex: 1;
+        min-width: 220px;
+      }
+      .button {
+        appearance: none;
+        border: 1px solid rgba(0, 0, 0, 0);
+        background: var(--primary);
+        color: white;
+        font-weight: 600;
+        font-size: 13px;
+        padding: 9px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+        height: 40px;
+      }
+      .button.secondary {
+        background: var(--soft);
+        color: var(--text);
+        border-color: var(--border);
+      }
+      .button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .switcher {
+        display: flex;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--soft);
+        margin-bottom: 10px;
+      }
+      .switcher button {
+        flex: 1;
+        border: none;
+        background: transparent;
+        padding: 10px 12px;
+        font-weight: 700;
+        font-size: 13px;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .switcher button.active {
+        background: white;
+        color: var(--text);
+      }
+
+      .result {
+        display: none;
+        margin-top: 12px;
+        border-radius: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        background: white;
+        font-size: 13px;
+      }
+      .result.error {
+        border-color: rgba(220, 38, 38, 0.35);
+        background: rgba(220, 38, 38, 0.08);
+      }
+
+      .meta {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 8px 0 0;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .table {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: white;
+        overflow: hidden;
+      }
+      .thead,
+      .trow {
+        display: grid;
+        grid-template-columns:
+          44px
+          minmax(120px, 1.3fr)
+          100px
+          minmax(100px, 1fr)
+          minmax(80px, 1fr)
+          minmax(60px, 0.8fr)
+          110px;
+        gap: 8px;
+        padding: 10px 12px;
+        align-items: center;
+      }
+      .thead {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--muted);
+        background: var(--soft);
+        border-bottom: 1px solid var(--border);
+      }
+      .trow {
+        border-top: 1px solid var(--border);
+        font-size: 13px;
+      }
+      .trow:nth-child(even) {
+        background: rgba(17, 24, 39, 0.01);
+      }
+      .trow:hover {
+        background: rgba(17, 24, 39, 0.02);
+      }
+      .rank {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 700;
+        text-align: right;
+        padding-right: 6px;
+      }
+      .name {
+        font-weight: 800;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 2px;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+      }
+      .key {
+        min-width: 0;
+      }
+      .key .pill {
+        display: inline-block;
+        max-width: 100%;
+        padding: 6px 8px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--soft);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .num {
+        text-align: left;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: white;
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      @media (max-width: 920px) {
+        .thead,
+        .trow {
+          grid-template-columns: 44px 1fr 90px;
+          grid-template-rows: auto auto;
+        }
+        .col-street,
+        .col-city,
+        .col-state,
+        .col-key {
+          grid-column: 1 / -1;
+          padding-left: 52px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Helium Rewards API</h1>
+        <p>Top earners (DC) with entities enrichment</p>
+      </div>
+
+      <div class="content">
+        <div class="section">
+          <h2>API Configuration</h2>
+          <div class="row">
+            <div class="field">
+              <label for="apiUrl">API Base URL</label>
+              <input
+                id="apiUrl"
+                type="url"
+                value="https://helium-rewards-api.vercel.app"
+              />
+            </div>
+            <div class="field" style="max-width: 160px">
+              <label for="limit">Limit</label>
+              <select id="limit">
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+            <button class="button" id="refreshBtn">Refresh</button>
+            <button class="button secondary" id="copyBtn" title="Copy JSON response">
+              Copy JSON
+            </button>
+          </div>
+          <div class="meta" id="meta"></div>
+          <div class="result error" id="error"></div>
+        </div>
+
+        <div class="section">
+          <h2>Window</h2>
+          <div class="switcher">
+            <button type="button" data-window="1" class="active">1 day</button>
+            <button type="button" data-window="7">7 days</button>
+            <button type="button" data-window="30">30 days</button>
+          </div>
+
+          <div class="table">
+            <div class="thead">
+              <div>Rank</div>
+              <div>Name</div>
+              <div class="num col-hnt">Total HNT</div>
+              <div class="col-street">Street</div>
+              <div class="col-city">City</div>
+              <div class="col-state">State</div>
+              <div class="col-key">Device key</div>
+            </div>
+            <div id="rows"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentWindow = "1";
+      let lastJson = null;
+      const entityCache = new Map(); // key -> { ok, data, ts }
+
+      const CONFIG = {
+        // Limit concurrent entity requests to avoid rate limiting.
+        ENTITY_CONCURRENCY: 6,
+        // Entities endpoint (user requested): https://entities.nft.helium.io/{{eccCompact}}
+        ENTITIES_BASE_URL: "https://entities.nft.helium.io",
+      };
+
+      function getApiUrl() {
+        return document.getElementById("apiUrl").value.replace(/\/$/, "");
+      }
+
+      function setError(html) {
+        const el = document.getElementById("error");
+        if (!html) {
+          el.style.display = "none";
+          el.innerHTML = "";
+          return;
+        }
+        el.style.display = "block";
+        el.innerHTML = html;
+      }
+
+      function setMeta(parts) {
+        const el = document.getElementById("meta");
+        el.innerHTML = "";
+        for (const p of parts || []) {
+          const span = document.createElement("span");
+          span.innerHTML = p;
+          el.appendChild(span);
+        }
+      }
+
+      function fmt(n) {
+        if (n == null) return "0";
+        const x = Number(n);
+        if (Number.isNaN(x)) return String(n);
+        return x.toLocaleString(undefined, { maximumFractionDigits: 2 });
+      }
+
+      function escapeHtml(s) {
+        const div = document.createElement("div");
+        div.textContent = String(s ?? "");
+        return div.innerHTML;
+      }
+
+      function shortKey(key) {
+        const s = String(key || "");
+        if (s.length <= 12) return s;
+        return `${s.slice(0, 4)}**${s.slice(-4)}`;
+      }
+
+      function getAttr(json, traitType) {
+        const a = (json && json.attributes ? json.attributes : []).find(
+          (x) => x && x.trait_type === traitType
+        );
+        return a ? a.value : null;
+      }
+
+      function normalizeEntity(json) {
+        const name = json && json.name ? json.name : null;
+        const mobile = json && json.hotspot_infos ? json.hotspot_infos.mobile : null;
+        const street = mobile && mobile.street ? mobile.street : null;
+        const city =
+          (mobile && mobile.city) || getAttr(json, "mobile_city") || null;
+        const state =
+          (mobile && mobile.state) || getAttr(json, "mobile_state") || null;
+        return {
+          name: name || "Unknown",
+          street: street || "",
+          city: city || "",
+          state: state || "",
+          raw: json || null,
+        };
+      }
+
+      async function fetchJson(url) {
+        const res = await fetch(url, { headers: { Accept: "application/json" } });
+        const text = await res.text();
+        let json;
+        try {
+          json = JSON.parse(text);
+        } catch (_) {
+          const err = new Error(`Non-JSON response (HTTP ${res.status})`);
+          err._body = text;
+          throw err;
+        }
+        if (!res.ok) {
+          const err = new Error(`HTTP ${res.status}`);
+          err._json = json;
+          throw err;
+        }
+        return json;
+      }
+
+      async function fetchEntity(deviceKey) {
+        if (entityCache.has(deviceKey)) return entityCache.get(deviceKey);
+
+        const base = CONFIG.ENTITIES_BASE_URL.replace(/\/$/, "");
+        const url1 = `${base}/${encodeURIComponent(deviceKey)}`;
+        try {
+          const json = await fetchJson(url1);
+          const out = { ok: true, data: normalizeEntity(json), ts: Date.now(), url: url1 };
+          entityCache.set(deviceKey, out);
+          return out;
+        } catch (e) {
+          // Fallback to v2/entity path if the root path isn't supported.
+          const url2 = `${base}/v2/entity/${encodeURIComponent(deviceKey)}`;
+          try {
+            const json = await fetchJson(url2);
+            const out = { ok: true, data: normalizeEntity(json), ts: Date.now(), url: url2 };
+            entityCache.set(deviceKey, out);
+            return out;
+          } catch (e2) {
+            const out = {
+              ok: false,
+              data: { name: "Unknown", street: "", city: "", state: "", raw: null },
+              ts: Date.now(),
+              url: url1,
+              error: e2?.message || e?.message || "Failed",
+            };
+            entityCache.set(deviceKey, out);
+            return out;
+          }
+        }
+      }
+
+      async function asyncPool(limit, items, fn) {
+        const ret = [];
+        const executing = [];
+        for (const item of items) {
+          const p = Promise.resolve().then(() => fn(item));
+          ret.push(p);
+          if (limit <= items.length) {
+            const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+            executing.push(e);
+            if (executing.length >= limit) await Promise.race(executing);
+          }
+        }
+        return Promise.all(ret);
+      }
+
+      function renderRows(list) {
+        const rows = document.getElementById("rows");
+        rows.innerHTML = list
+          .map((x) => {
+            const key = String(x.device_key || "");
+            const keyShort = shortKey(key);
+            const hnt = fmt(x.total_hnt);
+            return `
+              <div class="trow" data-key="${escapeHtml(key)}">
+                <div class="rank">${x.rank}</div>
+                <div>
+                  <div class="name" data-role="name">Loading...</div>
+                  <div class="sub mono" data-role="asset"></div>
+                </div>
+                <div class="num mono col-hnt">${hnt}</div>
+                <div class="col-street"><div class="sub" data-role="street">Loading...</div></div>
+                <div class="col-city"><div class="sub" data-role="city">Loading...</div></div>
+                <div class="col-state"><div class="sub" data-role="state">Loading...</div></div>
+                <div class="key col-key">
+                  <span class="pill mono" title="${escapeHtml(key)}">${escapeHtml(
+              keyShort
+            )}</span>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        if (!list.length) {
+          rows.innerHTML = `<div class="trow"><div class="rank">-</div><div><div class="name">No data</div></div><div class="num mono col-hnt">0</div><div class="col-street"></div><div class="col-city"></div><div class="col-state"></div><div class="col-key"></div></div>`;
+        }
+      }
+
+      function updateRowEntity(key, entity, entityUrl) {
+        const row = document.querySelector(`.trow[data-key="${CSS.escape(key)}"]`);
+        if (!row) return;
+        const nameEl = row.querySelector('[data-role="name"]');
+        const streetEl = row.querySelector('[data-role="street"]');
+        const cityEl = row.querySelector('[data-role="city"]');
+        const stateEl = row.querySelector('[data-role="state"]');
+        const assetEl = row.querySelector('[data-role="asset"]');
+
+        const name = entity?.name || "Unknown";
+        const street = entity?.street || "";
+        const city = entity?.city || "";
+        const state = entity?.state || "";
+
+        nameEl.innerHTML = `<a href="${escapeHtml(entityUrl)}" target="_blank" style="color:inherit; text-decoration: none;">${escapeHtml(
+          name
+        )}</a>`;
+        streetEl.textContent = street || "—";
+        cityEl.textContent = city || "—";
+        stateEl.textContent = state || "—";
+        assetEl.textContent = "";
+      }
+
+      async function enrichEntities(keys) {
+        await asyncPool(CONFIG.ENTITY_CONCURRENCY, keys, async (key) => {
+          const r = await fetchEntity(key);
+          updateRowEntity(key, r.data, r.url);
+        });
+      }
+
+      async function load() {
+        const limit = document.getElementById("limit").value;
+        const url = `${getApiUrl()}/api/top-earners?window_days=${encodeURIComponent(
+          currentWindow
+        )}&limit=${encodeURIComponent(limit)}`;
+
+        const refreshBtn = document.getElementById("refreshBtn");
+        refreshBtn.disabled = true;
+        setError("");
+
+        try {
+          const json = await fetchJson(url);
+          if (!json.success) throw new Error(json.error || "Request failed");
+
+          lastJson = json;
+          const list = (json.results && json.results[currentWindow]) || [];
+          renderRows(list);
+
+          const snap = json.snapshot || {};
+          setMeta([
+            `Snapshot: <span class="badge">${escapeHtml(snap.created_at || "unknown")}</span>`,
+            `Prefix: <span class="badge">${escapeHtml(snap.source_prefix || "unknown")}</span>`,
+            `Window: <span class="badge">${escapeHtml(currentWindow)} day(s)</span>`,
+          ]);
+
+          // Enrich with entities info
+          const keys = list.map((x) => String(x.device_key || "")).filter(Boolean);
+          if (keys.length) {
+            await enrichEntities(keys);
+          }
+        } catch (e) {
+          setError(
+            `<strong>Failed to load top earners</strong><br>${escapeHtml(
+              e?.message || "Request failed"
+            )}<br><br><code>${escapeHtml(url)}</code>`
+          );
+          document.getElementById("rows").innerHTML = "";
+          setMeta([]);
+        } finally {
+          refreshBtn.disabled = false;
+        }
+      }
+
+      function setWindow(w) {
+        currentWindow = String(w);
+        document.querySelectorAll(".switcher button").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.window === currentWindow);
+        });
+        load();
+      }
+
+      async function copyJson() {
+        if (!lastJson) return;
+        const text = JSON.stringify(lastJson, null, 2);
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch (_) {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+        }
+      }
+
+      document.getElementById("refreshBtn").addEventListener("click", load);
+      document.getElementById("copyBtn").addEventListener("click", copyJson);
+      document.getElementById("limit").addEventListener("change", load);
+      document.querySelectorAll(".switcher button").forEach((btn) => {
+        btn.addEventListener("click", () => setWindow(btn.dataset.window));
+      });
+
+      window.addEventListener("load", () => setWindow("1"));
+    </script>
+  </body>
+</html>
+
