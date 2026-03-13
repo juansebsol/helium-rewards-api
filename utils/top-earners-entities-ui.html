@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Helium Rewards API - Top Earners (Entities)</title>
+    <script src="https://unpkg.com/@solana/web3.js@1.98.2/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/js-sha256@0.11.0/build/sha256.min.js"></script>
     <style>
       :root {
         color-scheme: light;
@@ -353,11 +355,95 @@
       const entityCache = new Map(); // key -> { ok, data, ts }
 
       const CONFIG = {
-        // Limit concurrent entity requests to avoid rate limiting.
         ENTITY_CONCURRENCY: 6,
-        // Entities endpoint (user requested): https://entities.nft.helium.io/{{eccCompact}}
         ENTITIES_BASE_URL: "https://entities.nft.helium.io",
+        // Keys longer than this threshold are entity_key_strings that need
+        // conversion via key_to_asset PDA before calling the entities API.
+        LONG_KEY_THRESHOLD: 60,
       };
+
+      // ── Solana PDA helpers (mirrors helium-keyToAssetKey/key_to_asset.ts) ──
+      // Uses only Uint8Array (no Node Buffer) so it works in the browser.
+
+      const { PublicKey } = solanaWeb3;
+      const HEM_PROGRAM_ID = new PublicKey("hemjuPXBpNvggtaUnN1MwT3wrdhttKEfosTcc2P9Pg8");
+      const HDAO_PROGRAM_ID = new PublicKey("hdaoVTCqhfHHo75XdAMxBKdUqvq1i5bF23sisBqVgGR");
+      const HNT_MINT = new PublicKey("hntyVP6YFm1Hg25TN9WGLqM12b8TQmcknKrdu1oxWux");
+
+      const _enc = new TextEncoder();
+      const B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+      function b58decode(src) {
+        if (!src.length) return new Uint8Array(0);
+        let zeros = 0;
+        while (zeros < src.length && src[zeros] === "1") zeros++;
+        const size = Math.ceil(src.length * 733 / 1000) + 1;
+        const b256 = new Uint8Array(size);
+        for (let i = zeros; i < src.length; i++) {
+          let carry = B58_ALPHABET.indexOf(src[i]);
+          if (carry < 0) throw new Error("Invalid base58 char: " + src[i]);
+          for (let j = size - 1; j >= 0; j--) {
+            carry += 58 * b256[j];
+            b256[j] = carry % 256;
+            carry = Math.floor(carry / 256);
+          }
+        }
+        let it = 0;
+        while (it < size && b256[it] === 0) it++;
+        const result = new Uint8Array(zeros + (size - it));
+        result.set(b256.subarray(it), zeros);
+        return result;
+      }
+
+      function hexToBytes(hex) {
+        const out = new Uint8Array(hex.length / 2);
+        for (let i = 0; i < out.length; i++)
+          out[i] = parseInt(hex.substr(i * 2, 2), 16);
+        return out;
+      }
+
+      function heliumDaoKey() {
+        const [pda] = PublicKey.findProgramAddressSync(
+          [_enc.encode("dao"), HNT_MINT.toBytes()],
+          HDAO_PROGRAM_ID
+        );
+        return pda;
+      }
+
+      function keyToAssetPDA(entityKeyStr) {
+        const entityBytes = b58decode(entityKeyStr);
+        const hashHex = sha256(entityBytes);
+        const hashedKey = hexToBytes(hashHex);
+        const dao = heliumDaoKey();
+        const [pda] = PublicKey.findProgramAddressSync(
+          [_enc.encode("key_to_asset"), dao.toBytes(), hashedKey],
+          HEM_PROGRAM_ID
+        );
+        return pda.toBase58();
+      }
+
+      // Verify PDA helpers loaded correctly
+      try {
+        const _testDao = heliumDaoKey();
+        console.log("[key_to_asset] PDA helpers loaded OK. DAO:", _testDao.toBase58());
+      } catch (e) {
+        console.error("[key_to_asset] PDA helpers FAILED to load:", e);
+      }
+
+      const pdaCache = new Map();
+      function resolveEntityKey(deviceKey) {
+        if (deviceKey.length <= CONFIG.LONG_KEY_THRESHOLD) return deviceKey;
+        if (pdaCache.has(deviceKey)) return pdaCache.get(deviceKey);
+        try {
+          const pda = keyToAssetPDA(deviceKey);
+          console.log("[key_to_asset] Converted:", deviceKey.slice(0, 16) + "…", "→", pda);
+          pdaCache.set(deviceKey, pda);
+          return pda;
+        } catch (e) {
+          console.error("[key_to_asset] PDA derivation FAILED for", deviceKey.slice(0, 20), e);
+          return deviceKey;
+        }
+      }
 
       function getApiUrl() {
         return document.getElementById("apiUrl").value.replace(/\/$/, "");
@@ -450,32 +536,42 @@
         if (entityCache.has(deviceKey)) return entityCache.get(deviceKey);
 
         const base = CONFIG.ENTITIES_BASE_URL.replace(/\/$/, "");
-        const url1 = `${base}/${encodeURIComponent(deviceKey)}`;
-        try {
-          const json = await fetchJson(url1);
-          const out = { ok: true, data: normalizeEntity(json), ts: Date.now(), url: url1 };
-          entityCache.set(deviceKey, out);
-          return out;
-        } catch (e) {
-          // Fallback to v2/entity path if the root path isn't supported.
-          const url2 = `${base}/v2/entity/${encodeURIComponent(deviceKey)}`;
+
+        // If the key is a long entity_key_string, convert via key_to_asset PDA
+        const lookupKey = resolveEntityKey(deviceKey);
+        const converted = lookupKey !== deviceKey;
+        if (converted) {
+          console.log("Converted long key → PDA:", deviceKey.slice(0, 12) + "…", "→", lookupKey);
+        }
+
+        const urls = converted
+          ? [`${base}/v2/hotspot/${encodeURIComponent(lookupKey)}`]
+          : [
+              `${base}/${encodeURIComponent(lookupKey)}`,
+              `${base}/v2/entity/${encodeURIComponent(lookupKey)}`,
+            ];
+
+        let lastErr = null;
+        for (const url of urls) {
           try {
-            const json = await fetchJson(url2);
-            const out = { ok: true, data: normalizeEntity(json), ts: Date.now(), url: url2 };
+            const json = await fetchJson(url);
+            const out = { ok: true, data: normalizeEntity(json), ts: Date.now(), url };
             entityCache.set(deviceKey, out);
             return out;
-          } catch (e2) {
-            const out = {
-              ok: false,
-              data: { name: "Unknown", street: "", city: "", state: "", raw: null },
-              ts: Date.now(),
-              url: url1,
-              error: e2?.message || e?.message || "Failed",
-            };
-            entityCache.set(deviceKey, out);
-            return out;
+          } catch (e) {
+            lastErr = e;
           }
         }
+
+        const out = {
+          ok: false,
+          data: { name: "Unknown", street: "", city: "", state: "", raw: null },
+          ts: Date.now(),
+          url: urls[0],
+          error: lastErr?.message || "Failed",
+        };
+        entityCache.set(deviceKey, out);
+        return out;
       }
 
       async function asyncPool(limit, items, fn) {
