@@ -608,9 +608,9 @@
                 <div class="col-city"><div class="sub" data-role="city">Loading...</div></div>
                 <div class="col-state"><div class="sub" data-role="state">Loading...</div></div>
                 <div class="key col-key">
-                  <span class="pill mono" title="${escapeHtml(key)}">${escapeHtml(
+                  <a class="pill mono" data-role="keyLink" href="#" title="${escapeHtml(key)}" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">${escapeHtml(
               keyShort
-            )}</span>
+            )}</a>
                 </div>
               </div>
             `;
@@ -639,6 +639,8 @@
         nameEl.innerHTML = `<a href="${escapeHtml(entityUrl)}" target="_blank" style="color:inherit; text-decoration: none;">${escapeHtml(
           name
         )}</a>`;
+        const keyLinkEl = row.querySelector('[data-role="keyLink"]');
+        if (keyLinkEl) keyLinkEl.href = entityUrl;
         streetEl.textContent = street || "—";
         cityEl.textContent = city || "—";
         stateEl.textContent = state || "—";
