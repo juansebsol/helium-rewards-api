@@ -23,8 +23,8 @@ const CONFIG = {
   // Windows to compute (in days). Must include the max lookback.
   WINDOWS_DAYS: [1, 7, 30],
 
-  // Output size
-  TOP_N: 10,
+  // Output size (top N devices per window; UI paginates through these)
+  TOP_N: parseInt(process.env.TOP_EARNERS_LIMIT || "20000", 10),
 };
 
 const REGION = CONFIG.AWS_REGION;

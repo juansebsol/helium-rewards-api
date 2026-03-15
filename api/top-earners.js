@@ -1,11 +1,10 @@
 // api/top-earners.js
-// GET /api/top-earners
-// Returns latest top earners snapshot for DC rewards.
+// GET /api/top-earners?window_days=1|7|30&page=1&per_page=10
+// Returns latest top earners snapshot, paginated for the requested window.
 
 const { supabase } = require('./_supabase');
 
 module.exports = async (req, res) => {
-  // Basic CORS (public read); tighten if needed
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -13,8 +12,9 @@ module.exports = async (req, res) => {
   if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   try {
-    const windowDays = String(req.query.window_days || req.query.window || '').trim(); // "1" | "7" | "30" | ""
-    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || '10', 10) || 10));
+    const windowDays = String(req.query.window_days || req.query.window || '1').trim();
+    const page = Math.max(1, parseInt(req.query.page || '1', 10) || 1);
+    const perPage = Math.max(1, Math.min(100, parseInt(req.query.per_page || req.query.limit || '10', 10) || 10));
 
     const { data, error } = await supabase
       .from('top_earners_snapshots')
@@ -34,19 +34,17 @@ module.exports = async (req, res) => {
     const results = data.results || {};
     const windows = Object.keys(results).sort((a, b) => Number(a) - Number(b));
 
-    let payloadResults;
-    if (windowDays) {
-      if (!results[windowDays]) {
-        return res.status(400).json({
-          success: false,
-          error: `Invalid window_days. Available: ${windows.join(', ')}`,
-        });
-      }
-      payloadResults = { [windowDays]: (results[windowDays] || []).slice(0, limit) };
-    } else {
-      payloadResults = {};
-      for (const w of windows) payloadResults[w] = (results[w] || []).slice(0, limit);
+    if (!results[windowDays]) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid window_days. Use one of: ${windows.join(', ')}`,
+      });
     }
+
+    const fullList = results[windowDays] || [];
+    const total = fullList.length;
+    const start = (page - 1) * perPage;
+    const items = fullList.slice(start, start + perPage);
 
     return res.status(200).json({
       success: true,
@@ -59,7 +57,11 @@ module.exports = async (req, res) => {
         windows_days: data.windows_days,
         top_n: data.top_n,
       },
-      results: payloadResults,
+      window_days: windowDays,
+      items,
+      total,
+      page,
+      per_page: perPage,
       meta: data.meta || null,
     });
   } catch (err) {
