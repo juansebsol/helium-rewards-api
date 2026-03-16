@@ -12,57 +12,68 @@ module.exports = async (req, res) => {
   if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   try {
-    const windowDays = String(req.query.window_days || req.query.window || '1').trim();
+    const windowDaysRaw = String(req.query.window_days || req.query.window || '1').trim();
+    const windowDays = parseInt(windowDaysRaw, 10);
+    if (![1, 7, 30].includes(windowDays)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid window_days. Use one of: 1, 7, 30',
+      });
+    }
+
     const page = Math.max(1, parseInt(req.query.page || '1', 10) || 1);
     const perPage = Math.max(1, Math.min(100, parseInt(req.query.per_page || req.query.limit || '10', 10) || 10));
 
-    const { data, error } = await supabase
+    // Get latest snapshot meta (no big JSON)
+    const { data: snap, error: snapError } = await supabase
       .from('top_earners_snapshots')
-      .select('*')
+      .select('id, created_at, source_prefix, lookback_days, windows_days, top_n, meta')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (error) {
-      return res.status(500).json({ success: false, error: error.message });
+    if (snapError) {
+      return res.status(500).json({ success: false, error: snapError.message });
     }
 
-    if (!data) {
+    if (!snap) {
       return res.status(404).json({ success: false, error: 'No top earner snapshots found' });
     }
 
-    const results = data.results || {};
-    const windows = Object.keys(results).sort((a, b) => Number(a) - Number(b));
+    const from = (page - 1) * perPage;
+    const to = from + perPage - 1;
 
-    if (!results[windowDays]) {
-      return res.status(400).json({
-        success: false,
-        error: `Invalid window_days. Use one of: ${windows.join(', ')}`,
-      });
+    const { data: rows, error: rowsError, count } = await supabase
+      .from('top_earners_flat')
+      .select('rank, device_key, total_dc, total_hnt', { count: 'exact' })
+      .eq('snapshot_id', snap.id)
+      .eq('window_days', windowDays)
+      .order('rank', { ascending: true })
+      .range(from, to);
+
+    if (rowsError) {
+      return res.status(500).json({ success: false, error: rowsError.message });
     }
 
-    const fullList = results[windowDays] || [];
-    const total = fullList.length;
-    const start = (page - 1) * perPage;
-    const items = fullList.slice(start, start + perPage);
+    const total = typeof count === 'number' ? count : (rows || []).length;
 
     return res.status(200).json({
       success: true,
       timestamp: new Date().toISOString(),
       snapshot: {
-        id: data.id,
-        created_at: data.created_at,
-        source_prefix: data.source_prefix,
-        lookback_days: data.lookback_days,
-        windows_days: data.windows_days,
-        top_n: data.top_n,
+        id: snap.id,
+        created_at: snap.created_at,
+        source_prefix: snap.source_prefix,
+        lookback_days: snap.lookback_days,
+        windows_days: snap.windows_days,
+        top_n: snap.top_n,
       },
       window_days: windowDays,
-      items,
+      items: rows || [],
       total,
       page,
       per_page: perPage,
-      meta: data.meta || null,
+      meta: snap.meta || null,
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err?.message || 'Server error' });
