@@ -241,15 +241,52 @@ async function run() {
   };
 
   console.log("Writing snapshot to DB...");
-  const { error } = await supabase.from("top_earners_snapshots").insert({
-    source_prefix: PREFIX,
-    lookback_days: LOOKBACK_DAYS,
-    windows_days: WINDOWS_DAYS,
-    top_n: TOP_N,
-    results,
-    meta,
-  });
+  const { data: snapshotRows, error } = await supabase
+    .from("top_earners_snapshots")
+    .insert({
+      source_prefix: PREFIX,
+      lookback_days: LOOKBACK_DAYS,
+      windows_days: WINDOWS_DAYS,
+      top_n: TOP_N,
+      // Keep the snapshot lightweight; full per-device data lives in top_earners_flat.
+      results: {},
+      meta,
+    })
+    .select()
+    .limit(1);
   if (error) throw error;
+  const snapshot = Array.isArray(snapshotRows) ? snapshotRows[0] : snapshotRows;
+  if (!snapshot || !snapshot.id) {
+    throw new Error("Failed to obtain snapshot id after insert");
+  }
+
+  console.log("Writing flat top earners to DB...");
+  const flatRows = [];
+  for (const windowDays of WINDOWS_DAYS) {
+    const windowKey = String(windowDays);
+    const list = results[windowKey] || [];
+    for (const row of list) {
+      flatRows.push({
+        snapshot_id: snapshot.id,
+        window_days: windowDays,
+        rank: row.rank,
+        device_key: row.device_key,
+        total_dc: row.total_dc,
+        total_hnt: row.total_hnt,
+      });
+    }
+  }
+
+  if (flatRows.length) {
+    const BATCH_SIZE = 1000;
+    console.log(`Flat rows to insert: ${flatRows.length} (batch size ${BATCH_SIZE})`);
+    for (let i = 0; i < flatRows.length; i += BATCH_SIZE) {
+      const batch = flatRows.slice(i, i + BATCH_SIZE);
+      const { error: flatError } = await supabase.from("top_earners_flat").insert(batch);
+      if (flatError) throw flatError;
+      console.log(`Inserted ${Math.min(i + BATCH_SIZE, flatRows.length)}/${flatRows.length} flat rows...`);
+    }
+  }
 
   console.log("Done.");
 }

@@ -25,3 +25,20 @@ CREATE POLICY "Service role full access on top_earners_snapshots" ON top_earners
 CREATE POLICY "Anonymous read access on top_earners_snapshots" ON top_earners_snapshots
   FOR SELECT USING (true);
 
+-- ---------------------------------------------------------------------------
+-- Flat table for fast pagination
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS top_earners_flat (
+  snapshot_id UUID NOT NULL REFERENCES top_earners_snapshots(id) ON DELETE CASCADE,
+  window_days INTEGER NOT NULL,
+  rank INTEGER NOT NULL,
+  device_key TEXT NOT NULL,
+  total_dc BIGINT NOT NULL,
+  total_hnt DOUBLE PRECISION NOT NULL,
+  PRIMARY KEY (snapshot_id, window_days, rank)
+);
+
+CREATE INDEX IF NOT EXISTS idx_top_earners_flat_snapshot_window
+  ON top_earners_flat (snapshot_id, window_days);
+
