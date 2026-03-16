@@ -153,6 +153,9 @@ npm run test:scrape device-key 7
 
 # Run comprehensive test suite
 npm run test:local all
+
+# Quick: count distinct rewardable devices (DC, last 30 days)
+node scripts/count-rewardable-devices.js
 ```
 
 ### **API Endpoints**
