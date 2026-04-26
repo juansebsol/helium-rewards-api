@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Helium Animal Name -> Entity Key</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+          "Apple Color Emoji", "Segoe UI Emoji";
+        padding: 16px;
+      }
+      .app {
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      h2 {
+        margin-top: 0;
+      }
+      .hint {
+        font-size: 12px;
+        opacity: 0.75;
+        margin-bottom: 10px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+      }
+      textarea {
+        width: 100%;
+        min-height: 180px;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(128, 128, 128, 0.35);
+        font-size: 14px;
+        resize: vertical;
+      }
+      button {
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(128, 128, 128, 0.35);
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .status {
+        margin: 10px 0 14px;
+      }
+      .error {
+        color: #b00020;
+      }
+      .summary {
+        margin: 8px 0 12px;
+        font-size: 14px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+        text-align: left;
+        padding: 8px;
+        vertical-align: top;
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+        word-break: break-all;
+      }
+      .ok {
+        color: #177245;
+      }
+      .bad {
+        color: #b00020;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <h2>Wallet Names -> entity_key_string</h2>
+      <div class="hint">
+        Step 1: paste wallet address. Step 2: paste 3-word names (one per line). This will
+        only match names that exist in that wallet and let you copy all matched
+        <code>entity_key_string</code> values.
+      </div>
+
+      <div class="row">
+        <input
+          id="walletAddress"
+          type="text"
+          style="flex: 1; min-width: 320px; padding: 10px; border-radius: 10px; border: 1px solid rgba(128, 128, 128, 0.35);"
+          placeholder="Wallet public key (Solana address)"
+        />
+      </div>
+
+      <textarea
+        id="inputNames"
+        placeholder="Pet Cider Parrot&#10;Brisk Lemon Otter&#10;..."
+      ></textarea>
+
+      <div class="row">
+        <button id="resolveBtn">Fetch Wallet + Match Names</button>
+        <button id="copyPairsBtn" disabled>Copy name + entity_key_string</button>
+        <button id="copyKeysBtn" disabled>Copy entity_key_string only</button>
+        <button id="clearBtn">Clear</button>
+      </div>
+
+      <div class="status" id="status"></div>
+      <div class="summary" id="summary"></div>
+
+      <table id="resultsTable" style="display: none">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Input Name</th>
+            <th>Normalized Name</th>
+            <th>entity_key_string</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+
+    <script>
+      const WALLET_ENTITIES_BASE = "https://entities.nft.helium.io/v2/wallet";
+
+      const walletEl = document.getElementById("walletAddress");
+      const inputEl = document.getElementById("inputNames");
+      const resolveBtn = document.getElementById("resolveBtn");
+      const copyPairsBtn = document.getElementById("copyPairsBtn");
+      const copyKeysBtn = document.getElementById("copyKeysBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const statusEl = document.getElementById("status");
+      const summaryEl = document.getElementById("summary");
+      const tableEl = document.getElementById("resultsTable");
+      const tbodyEl = document.getElementById("resultsBody");
+
+      let latestResults = [];
+
+      function normalizeAnimalName(raw) {
+        return String(raw || "")
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "-");
+      }
+
+      function parseInputLines() {
+        const lines = inputEl.value
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean);
+        return Array.from(new Set(lines));
+      }
+
+      function htmlEscape(s) {
+        const div = document.createElement("div");
+        div.textContent = String(s ?? "");
+        return div.innerHTML;
+      }
+
+      function getEntityKeyFromObject(obj) {
+        if (!obj || typeof obj !== "object") return "";
+        const fromAttr = Array.isArray(obj.attributes)
+          ? obj.attributes.find((a) => a?.trait_type === "entity_key_string")?.value
+          : "";
+        return fromAttr || obj.entity_key_str || obj.entity_key_string || "";
+      }
+
+      async function fetchJson(url) {
+        const res = await fetch(url, { headers: { Accept: "application/json" } });
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return res.json();
+      }
+
+      function mapWalletHotspots(hotspots) {
+        return (hotspots || []).map((h) => {
+          const name = String(h?.name || "").trim();
+          return {
+            name,
+            normalized: normalizeAnimalName(name),
+            entityKey: getEntityKeyFromObject(h),
+          };
+        });
+      }
+
+      function indexByNormalizedName(walletDevices) {
+        const map = new Map();
+        for (const d of walletDevices) {
+          if (!d.normalized) continue;
+          if (!map.has(d.normalized)) map.set(d.normalized, []);
+          map.get(d.normalized).push(d);
+        }
+        return map;
+      }
+
+      function renderResults(results) {
+        latestResults = results;
+        const okCount = results.filter((r) => r.ok).length;
+        const failCount = results.length - okCount;
+
+        summaryEl.innerHTML = `Total: <b>${results.length}</b> | Success: <b class="ok">${okCount}</b> | Failed: <b class="bad">${failCount}</b>`;
+
+        tbodyEl.innerHTML = results
+          .map(
+            (r, idx) => `
+          <tr>
+            <td>${idx + 1}</td>
+            <td>${htmlEscape(r.inputName)}</td>
+            <td class="mono">${htmlEscape(r.normalized)}</td>
+            <td class="mono">${htmlEscape(r.entityKey || "")}</td>
+            <td class="${r.ok ? "ok" : "bad"}">${htmlEscape(r.message)}</td>
+          </tr>
+        `
+          )
+          .join("");
+
+        tableEl.style.display = "table";
+        copyPairsBtn.disabled = okCount === 0;
+        copyKeysBtn.disabled = okCount === 0;
+      }
+
+      async function resolveAll() {
+        const wallet = walletEl.value.trim();
+        const names = parseInputLines();
+
+        if (!wallet) {
+          statusEl.innerHTML = `<span class="error">Paste wallet address first.</span>`;
+          return;
+        }
+        if (!names.length) {
+          statusEl.innerHTML = `<span class="error">Paste at least one name.</span>`;
+          return;
+        }
+
+        resolveBtn.disabled = true;
+        copyPairsBtn.disabled = true;
+        copyKeysBtn.disabled = true;
+        summaryEl.textContent = "";
+        tableEl.style.display = "none";
+        tbodyEl.innerHTML = "";
+        statusEl.textContent = `Fetching wallet and matching ${names.length} name(s)...`;
+
+        try {
+          const url = `${WALLET_ENTITIES_BASE}/${encodeURIComponent(wallet)}`;
+          const walletJson = await fetchJson(url);
+          const walletDevices = mapWalletHotspots(walletJson.hotspots || []);
+          const byName = indexByNormalizedName(walletDevices);
+
+          const results = names.map((inputName) => {
+            const normalized = normalizeAnimalName(inputName);
+            const matches = byName.get(normalized) || [];
+            const withKey = matches.find((m) => m.entityKey);
+
+            if (withKey) {
+              return {
+                inputName,
+                normalized,
+                entityKey: withKey.entityKey,
+                ok: true,
+                message: matches.length > 1 ? `Matched (${matches.length} in wallet)` : "Matched",
+              };
+            }
+
+            if (matches.length > 0) {
+              return {
+                inputName,
+                normalized,
+                entityKey: "",
+                ok: false,
+                message: "Matched name but entity key missing",
+              };
+            }
+
+            return {
+              inputName,
+              normalized,
+              entityKey: "",
+              ok: false,
+              message: "Not found in wallet",
+            };
+          });
+
+          renderResults(results);
+          statusEl.textContent = `Done. Wallet hotspots: ${walletDevices.length}.`;
+        } catch (err) {
+          statusEl.innerHTML = `<span class="error">Wallet lookup failed: ${htmlEscape(err?.message || "request failed")}</span>`;
+        } finally {
+          resolveBtn.disabled = false;
+        }
+      }
+
+      async function copyPairs() {
+        const lines = latestResults
+          .filter((r) => r.ok && r.entityKey)
+          .map((r) => `${r.inputName}\t${r.entityKey}`);
+        await navigator.clipboard.writeText(lines.join("\n"));
+        statusEl.textContent = `Copied ${lines.length} name/key pair(s).`;
+      }
+
+      async function copyKeysOnly() {
+        const lines = latestResults.filter((r) => r.ok && r.entityKey).map((r) => r.entityKey);
+        await navigator.clipboard.writeText(lines.join("\n"));
+        statusEl.textContent = `Copied ${lines.length} entity_key_string value(s).`;
+      }
+
+      function clearAll() {
+        walletEl.value = "";
+        inputEl.value = "";
+        latestResults = [];
+        tableEl.style.display = "none";
+        tbodyEl.innerHTML = "";
+        summaryEl.textContent = "";
+        statusEl.textContent = "";
+        copyPairsBtn.disabled = true;
+        copyKeysBtn.disabled = true;
+      }
+
+      resolveBtn.addEventListener("click", resolveAll);
+      copyPairsBtn.addEventListener("click", copyPairs);
+      copyKeysBtn.addEventListener("click", copyKeysOnly);
+      clearBtn.addEventListener("click", clearAll);
+    </script>
+  </body>
+</html>
