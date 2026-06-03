@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus Rewards API Tester</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --soft: #f3f4f6;
+      --primary: #16a34a;
+      --success: #16a34a;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px;
+    }
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .header {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .header p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .content { padding: 18px; }
+    .section { margin-bottom: 18px; }
+    .section:last-child { margin-bottom: 0; }
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .hint-text {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .form-group { margin-bottom: 12px; }
+    .form-row .form-group { flex: 1; min-width: 220px; }
+    .form-group.full { width: 100%; }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      background: white;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: rgba(37, 99, 235, 0.7);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .checkbox-row input {
+      width: auto;
+      margin: 0;
+    }
+    .button {
+      appearance: none;
+      border: 1px solid rgba(0,0,0,0);
+      background: var(--primary);
+      color: white;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    .button:hover { filter: brightness(0.97); }
+    .button:active { filter: brightness(0.94); }
+    .button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .button.success { background: var(--success); }
+    .button.info { background: var(--soft); color: var(--text); border-color: var(--border); }
+    .result {
+      display: none;
+      margin-top: 12px;
+      border-radius: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      background: white;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .result.success { border-color: rgba(22,163,74,0.35); background: rgba(22,163,74,0.08); }
+    .result.error { border-color: rgba(220,38,38,0.35); background: rgba(220,38,38,0.08); }
+    .loading {
+      display: none;
+      margin: 10px 0;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      background: white;
+    }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(17,24,39,0.15);
+      border-top-color: rgba(17,24,39,0.5);
+      border-radius: 999px;
+      animation: spin 0.8s linear infinite;
+      vertical-align: -2px;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .api-info {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: white;
+      margin-top: 14px;
+    }
+    .api-info h3 { margin: 0 0 8px; font-size: 14px; }
+    .api-info code {
+      background: var(--soft);
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      border-radius: 8px;
+      word-break: break-all;
+    }
+    pre {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: white;
+      overflow: auto;
+      max-height: 420px;
+      font-size: 12px;
+    }
+    .hidden { display: none; }
+    .chart-wrap {
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: white;
+      padding: 12px;
+    }
+    .chart-wrap h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+    .chart-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .chart-metric {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: var(--soft);
+    }
+    .chart-metric .label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .metric-label-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .metric-help-btn {
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: white;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+    }
+    .metric-help-btn:hover {
+      color: var(--text);
+      border-color: #cbd5e1;
+    }
+    .chart-metric .value {
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .avg-math {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed #d1d5db;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .chart-canvas-wrap {
+      position: relative;
+      width: 100%;
+      height: 320px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Nexus Rewards API Tester</h1>
+      <p>Header-auth request utility (same clean style as trigger UI)</p>
+    </div>
+
+    <div class="content">
+      <div class="section">
+        <h2>Request Inputs</h2>
+        <p class="hint-text">
+          Sends <code>x-api-key</code> and optional <code>x-nexus-token</code> headers.
+          Query params are used for <code>network</code>, <code>device_id</code>,
+          <code>start_day</code>, and <code>end_day</code>.
+        </p>
+
+        <div class="form-group full">
+          <label for="baseUrl">Base URL</label>
+          <input id="baseUrl" value="https://nexus.fractals.finance" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="network">network</label>
+            <input id="network" value="helium" />
+          </div>
+          <div class="form-group">
+            <label for="deviceId">device_id</label>
+            <input id="deviceId" value="13XoAGeJYSbViwt9CT3EYdaeA4eXgnM2gZUkgBvyuCvnwcQk9mk" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="dateMode">Date mode</label>
+            <select id="dateMode">
+              <option value="manual">Manual start/end</option>
+              <option value="relative">Quick range (last N days)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row" id="manualDateRow">
+          <div class="form-group">
+            <label for="startDay">start_day</label>
+            <input id="startDay" type="date" value="2026-03-27" />
+          </div>
+          <div class="form-group">
+            <label for="endDay">end_day</label>
+            <input id="endDay" type="date" value="2026-04-25" />
+          </div>
+        </div>
+        <div class="form-row hidden" id="relativeDateRow">
+          <div class="form-group">
+            <label for="lastDays">Quick range</label>
+            <select id="lastDays">
+              <option value="1">Last 1 day</option>
+              <option value="15">Last 15 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="60">Last 60 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="120">Last 120 days</option>
+              <option value="240">Last 240 days</option>
+              <option value="365">Last 365 days</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label for="apiKey">x-api-key (header)</label>
+          <input id="apiKey" value="nxs_live_ak_HhvpmnEAsU0q_rYpeK_8-a59HnaC4-GVIusFsqdvOAJrSrr9WV0AFPg0" />
+        </div>
+
+        <div class="form-group full">
+          <label for="nexusToken">x-nexus-token (optional header)</label>
+          <input id="nexusToken" value="a7369f42f75cca757a461ad5710350fc05bfdfc43164b210b5f2586c3863003c" />
+        </div>
+
+        <div class="form-group full">
+          <label class="checkbox-row" for="includeApiKeyQuery">
+            <input id="includeApiKeyQuery" type="checkbox" />
+            Also include <code>api_key</code> in query string
+          </label>
+        </div>
+
+        <button class="button success" id="sendBtn">Send Request</button>
+        <button class="button info" id="copyUrlBtn">Copy URL</button>
+        <button class="button info" id="copyCurlBtn">Copy cURL</button>
+        <button class="button info" id="clearBtn">Clear Response</button>
+
+        <div class="loading" id="loading">
+          <span class="spinner"></span><span id="loadingText">Request in progress...</span>
+        </div>
+        <div class="result" id="result"></div>
+        <pre id="responseBox" style="display: none"></pre>
+        <div class="chart-wrap hidden" id="chartWrap">
+          <h3>Daily rewards (bar chart)</h3>
+          <div class="chart-metrics" id="chartMetrics"></div>
+          <div class="chart-canvas-wrap">
+            <canvas id="rewardsChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="api-info">
+        <h3>API details</h3>
+        <p><strong>Endpoint:</strong> <code>/api/nexus/rewards</code></p>
+        <p><strong>Headers:</strong> <code>x-api-key</code>, <code>x-nexus-token</code> (optional)</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+      const els = {
+        baseUrl: document.getElementById("baseUrl"),
+        network: document.getElementById("network"),
+        deviceId: document.getElementById("deviceId"),
+        startDay: document.getElementById("startDay"),
+        endDay: document.getElementById("endDay"),
+        dateMode: document.getElementById("dateMode"),
+        manualDateRow: document.getElementById("manualDateRow"),
+        relativeDateRow: document.getElementById("relativeDateRow"),
+        lastDays: document.getElementById("lastDays"),
+        apiKey: document.getElementById("apiKey"),
+        nexusToken: document.getElementById("nexusToken"),
+        includeApiKeyQuery: document.getElementById("includeApiKeyQuery"),
+        sendBtn: document.getElementById("sendBtn"),
+        copyUrlBtn: document.getElementById("copyUrlBtn"),
+        copyCurlBtn: document.getElementById("copyCurlBtn"),
+        clearBtn: document.getElementById("clearBtn"),
+        loading: document.getElementById("loading"),
+        loadingText: document.getElementById("loadingText"),
+        result: document.getElementById("result"),
+        responseBox: document.getElementById("responseBox"),
+        chartWrap: document.getElementById("chartWrap"),
+        chartMetrics: document.getElementById("chartMetrics"),
+        rewardsChart: document.getElementById("rewardsChart"),
+      };
+
+      let rewardsChartInstance = null;
+
+      function formatDateYmd(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      function getEffectiveDateRange() {
+        if (els.dateMode.value === "relative") {
+          const days = parseInt(els.lastDays.value, 10) || 1;
+          const end = new Date();
+          const start = new Date(end);
+          start.setDate(end.getDate() - (days - 1));
+          return {
+            startDay: formatDateYmd(start),
+            endDay: formatDateYmd(end),
+          };
+        }
+        return {
+          startDay: els.startDay.value,
+          endDay: els.endDay.value,
+        };
+      }
+
+      function buildUrl() {
+        const base = els.baseUrl.value.trim().replace(/\/$/, "");
+        const url = new URL(`${base}/api/nexus/rewards`);
+        const range = getEffectiveDateRange();
+        url.searchParams.set("network", els.network.value.trim() || "helium");
+        url.searchParams.set("device_id", els.deviceId.value.trim());
+        url.searchParams.set("start_day", range.startDay);
+        url.searchParams.set("end_day", range.endDay);
+        if (els.includeApiKeyQuery.checked) {
+          url.searchParams.set("api_key", els.apiKey.value.trim());
+        }
+        return url.toString();
+      }
+
+      function showLoading(text = "Request in progress...") {
+        els.loadingText.textContent = text;
+        els.loading.style.display = "block";
+        els.result.style.display = "none";
+      }
+
+      function hideLoading() {
+        els.loading.style.display = "none";
+      }
+
+      function showResult(msg, type = "success") {
+        els.result.className = `result ${type}`;
+        els.result.textContent = msg;
+        els.result.style.display = "block";
+      }
+
+      function validate() {
+        if (!els.baseUrl.value.trim()) return "Base URL is required.";
+        if (!els.deviceId.value.trim()) return "device_id is required.";
+        const range = getEffectiveDateRange();
+        if (!range.startDay) return "start_day is required.";
+        if (!range.endDay) return "end_day is required.";
+        if (!els.apiKey.value.trim()) return "api_key is required.";
+        return "";
+      }
+
+      function setDateModeUI() {
+        const relative = els.dateMode.value === "relative";
+        els.manualDateRow.classList.toggle("hidden", relative);
+        els.relativeDateRow.classList.toggle("hidden", !relative);
+      }
+
+      function extractDailyRewardsRows(json) {
+        const candidateArrays = [];
+        if (Array.isArray(json)) candidateArrays.push(json);
+        if (Array.isArray(json?.data)) candidateArrays.push(json.data);
+        if (Array.isArray(json?.daily)) candidateArrays.push(json.daily);
+        if (Array.isArray(json?.rewards)) candidateArrays.push(json.rewards);
+        if (Array.isArray(json?.result)) candidateArrays.push(json.result);
+        if (Array.isArray(json?.results)) candidateArrays.push(json.results);
+
+        const rows = [];
+        for (const arr of candidateArrays) {
+          for (const item of arr) {
+            if (!item || typeof item !== "object") continue;
+            const day =
+              item.day ||
+              item.date ||
+              item.reward_day ||
+              item.transaction_date ||
+              item.start_day ||
+              item.end_day;
+
+            const reward =
+              item.rewards ??
+              item.reward ??
+              item.reward_amount ??
+              item.reward_amount_dc ??
+              item.total_rewards ??
+              item.amount;
+
+            if (!day || reward === undefined || reward === null) continue;
+            const num = Number(reward);
+            if (!Number.isFinite(num)) continue;
+            rows.push({ day: String(day), reward: num });
+          }
+          if (rows.length) break;
+        }
+        rows.sort((a, b) => a.day.localeCompare(b.day));
+        return rows;
+      }
+
+      function renderRewardsChart(rows) {
+        if (!rows.length) {
+          els.chartWrap.classList.add("hidden");
+          els.chartMetrics.innerHTML = "";
+          if (rewardsChartInstance) {
+            rewardsChartInstance.destroy();
+            rewardsChartInstance = null;
+          }
+          return;
+        }
+
+        els.chartWrap.classList.remove("hidden");
+        const labels = rows.map((r) => r.day);
+        const data = rows.map((r) => r.reward);
+        const total = data.reduce((sum, v) => sum + v, 0);
+        const avg = total / data.length;
+        const max = Math.max(...data);
+        const min = Math.min(...data);
+        const maxIdx = data.indexOf(max);
+        const minIdx = data.indexOf(min);
+        const fmt = (n, decimals = 3) =>
+          Number(n).toLocaleString(undefined, { maximumFractionDigits: decimals });
+        els.chartMetrics.innerHTML = `
+          <div class="chart-metric">
+            <div class="label">Days</div>
+            <div class="value">${data.length}</div>
+          </div>
+          <div class="chart-metric">
+            <div class="label">Total rewards</div>
+            <div class="value">${fmt(total)}</div>
+          </div>
+          <div class="chart-metric">
+            <div class="metric-label-row">
+              <div class="label">Average / day</div>
+              <button class="metric-help-btn" type="button" id="avgMathToggle" title="Show average math">?</button>
+            </div>
+            <div class="value">${fmt(avg)}</div>
+            <div class="avg-math hidden" id="avgMathDetail">
+              Formula:<br><code>total rewards / days</code><br>
+              ${fmt(total, 6)} / ${data.length} = ${fmt(avg, 6)}
+            </div>
+          </div>
+          <div class="chart-metric">
+            <div class="label">Max day</div>
+            <div class="value">${fmt(max)} (${labels[maxIdx]})</div>
+          </div>
+          <div class="chart-metric">
+            <div class="label">Min day</div>
+            <div class="value">${fmt(min)} (${labels[minIdx]})</div>
+          </div>
+        `;
+        const ctx = els.rewardsChart.getContext("2d");
+        const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+        gradient.addColorStop(0, "rgba(22, 163, 74, 0.9)");
+        gradient.addColorStop(1, "rgba(22, 163, 74, 0.25)");
+
+        if (rewardsChartInstance) rewardsChartInstance.destroy();
+        rewardsChartInstance = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "Rewards",
+                data,
+                backgroundColor: gradient,
+                borderColor: "rgba(22, 163, 74, 1)",
+                borderWidth: 1,
+                borderRadius: 4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                ticks: { maxRotation: 45, minRotation: 45 },
+                grid: { display: false },
+              },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: (value) =>
+                    Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 }),
+                },
+              },
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                padding: 10,
+                titleFont: { size: 13, weight: "700" },
+                bodyFont: { size: 13, weight: "600" },
+                displayColors: false,
+                boxPadding: 6,
+                callbacks: {
+                  label: (ctx) =>
+                    `Reward: ${Number(ctx.parsed.y).toLocaleString(undefined, { maximumFractionDigits: 6 })}`,
+                },
+              },
+            },
+            interaction: {
+              mode: "index",
+              intersect: false,
+            },
+          },
+        });
+      }
+
+      async function sendRequest() {
+        const err = validate();
+        if (err) {
+          showResult(err, "error");
+          return;
+        }
+
+        const url = buildUrl();
+        els.sendBtn.disabled = true;
+        showLoading("Request in progress...");
+
+        try {
+          const headers = {
+            Accept: "application/json",
+            "x-api-key": els.apiKey.value.trim(),
+          };
+          if (els.nexusToken.value.trim()) {
+            headers["x-nexus-token"] = els.nexusToken.value.trim();
+          }
+          const res = await fetch(url, { headers });
+          const contentType = res.headers.get("content-type") || "";
+          const raw = await res.text();
+          let pretty = raw;
+          let parsed = null;
+
+          if (contentType.includes("application/json")) {
+            try {
+              parsed = JSON.parse(raw);
+              pretty = JSON.stringify(parsed, null, 2);
+            } catch (_) {}
+          }
+
+          els.responseBox.style.display = "block";
+          els.responseBox.textContent = pretty;
+          if (parsed) {
+            const rows = extractDailyRewardsRows(parsed);
+            renderRewardsChart(rows);
+          } else {
+            renderRewardsChart([]);
+          }
+          showResult(`HTTP ${res.status} ${res.statusText}\n${url}`, res.ok ? "success" : "error");
+        } catch (e) {
+          els.responseBox.style.display = "block";
+          els.responseBox.textContent = String(e?.message || e);
+          renderRewardsChart([]);
+          showResult("Network/request failed.", "error");
+        } finally {
+          hideLoading();
+          els.sendBtn.disabled = false;
+        }
+      }
+
+      async function copyUrl() {
+        const err = validate();
+        if (err) {
+          showResult(err, "error");
+          return;
+        }
+        const url = buildUrl();
+        await navigator.clipboard.writeText(url);
+        showResult("URL copied.", "success");
+      }
+
+      async function copyCurl() {
+        const err = validate();
+        if (err) {
+          showResult(err, "error");
+          return;
+        }
+        const url = buildUrl().replace(/"/g, '\\"');
+        const key = els.apiKey.value.trim().replace(/"/g, '\\"');
+        const token = els.nexusToken.value.trim().replace(/"/g, '\\"');
+        const parts = [`curl -sS "${url}"`, `-H "Accept: application/json"`, `-H "x-api-key: ${key}"`];
+        if (token) parts.push(`-H "x-nexus-token: ${token}"`);
+        const cmd = parts.join(" ");
+        await navigator.clipboard.writeText(cmd);
+        showResult("cURL copied.", "success");
+      }
+
+      function clearResponse() {
+        hideLoading();
+        els.result.style.display = "none";
+        els.result.textContent = "";
+        els.responseBox.textContent = "";
+        els.responseBox.style.display = "none";
+        renderRewardsChart([]);
+      }
+
+      els.sendBtn.addEventListener("click", sendRequest);
+      els.copyUrlBtn.addEventListener("click", copyUrl);
+      els.copyCurlBtn.addEventListener("click", copyCurl);
+      els.clearBtn.addEventListener("click", clearResponse);
+      els.dateMode.addEventListener("change", setDateModeUI);
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest("#avgMathToggle");
+        if (!btn) return;
+        const panel = document.getElementById("avgMathDetail");
+        if (!panel) return;
+        panel.classList.toggle("hidden");
+      });
+      setDateModeUI();
+  </script>
+</body>
+</html>

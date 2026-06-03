@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus Batch Node UI</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --soft: #f3f4f6;
+      --primary: #16a34a;
+      --success: #16a34a;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px;
+    }
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .header {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .header p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .content { padding: 18px; }
+    .section { margin-bottom: 18px; }
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .hint-text {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .form-group { margin-bottom: 12px; }
+    .form-row .form-group { flex: 1; min-width: 220px; }
+    .form-group.full { width: 100%; }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      background: white;
+    }
+    textarea {
+      min-height: 140px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+      font-size: 12px;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: rgba(37, 99, 235, 0.7);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .checkbox-row input {
+      width: auto;
+      margin: 0;
+    }
+    .button {
+      appearance: none;
+      border: 1px solid rgba(0,0,0,0);
+      background: var(--primary);
+      color: white;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    .button:hover { filter: brightness(0.97); }
+    .button:active { filter: brightness(0.94); }
+    .button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .button.success { background: var(--success); }
+    .button.info { background: var(--soft); color: var(--text); border-color: var(--border); }
+    .result {
+      display: none;
+      margin-top: 12px;
+      border-radius: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      background: white;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .result.success { border-color: rgba(22,163,74,0.35); background: rgba(22,163,74,0.08); }
+    .result.error { border-color: rgba(220,38,38,0.35); background: rgba(220,38,38,0.08); }
+    .loading {
+      display: none;
+      margin: 10px 0;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      background: white;
+    }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(17,24,39,0.15);
+      border-top-color: rgba(17,24,39,0.5);
+      border-radius: 999px;
+      animation: spin 0.8s linear infinite;
+      vertical-align: -2px;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none; }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .summary-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: var(--soft);
+    }
+    .summary-card .label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .summary-card .value {
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .avg-help-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .metric-help-btn {
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: white;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+    }
+    .avg-math {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed #d1d5db;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .chart-wrap {
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: white;
+      padding: 12px;
+    }
+    .chart-wrap h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+    .chart-canvas-wrap {
+      position: relative;
+      width: 100%;
+      height: 320px;
+    }
+    .wallet-tools {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: white;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+    .wallet-meta {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .wallet-paste-select {
+      margin-top: 8px;
+    }
+    .wallet-paste-select textarea {
+      min-height: 90px;
+    }
+    .wallet-device-list {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: white;
+      max-height: 240px;
+      overflow: auto;
+    }
+    .wallet-device-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .wallet-device-row:last-child { border-bottom: none; }
+    .wallet-device-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .wallet-device-key {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+      font-size: 11px;
+      color: var(--muted);
+      word-break: break-all;
+      margin-top: 2px;
+    }
+    .wallet-device-check {
+      width: auto;
+      margin: 0;
+      transform: scale(1.15);
+    }
+    pre {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: white;
+      overflow: auto;
+      max-height: 340px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Nexus Batch Node UI</h1>
+      <p>Aggregate rewards across many devices</p>
+    </div>
+
+    <div class="content">
+      <div class="section">
+        <h2>Batch Inputs</h2>
+        <p class="hint-text">
+          Paste one device ID per line. The tool queries each device and aggregates daily rewards
+          into a single batch view.
+        </p>
+
+        <div class="form-group full">
+          <label for="baseUrl">Base URL</label>
+          <input id="baseUrl" value="https://nexus.fractals.finance" />
+        </div>
+
+        <div class="form-group full">
+          <label for="deviceIds">Device IDs (one per line)</label>
+          <textarea id="deviceIds" placeholder="13XoAGeJ...&#10;13abc..."></textarea>
+        </div>
+        <div class="wallet-tools">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="walletAddress">Add devices by wallet</label>
+              <input id="walletAddress" placeholder="Wallet public key (Solana address)" />
+            </div>
+          </div>
+          <button class="button info" id="fetchWalletBtn">Fetch Wallet Devices</button>
+          <button class="button info" id="selectAllWalletBtn">Select All</button>
+          <button class="button info" id="clearWalletSelectionBtn">Clear Selection</button>
+          <button class="button info" id="replaceWithSelectedBtn">Replace list with selected</button>
+          <button class="button info" id="appendSelectedBtn">Add selected to scrape list</button>
+          <div class="wallet-paste-select">
+            <label for="walletNamePaste">Paste-select by 3-word names (one per line)</label>
+            <textarea id="walletNamePaste" placeholder="pet-cider-parrot&#10;Pet Cider Parrot"></textarea>
+          </div>
+          <div class="wallet-meta" id="walletMeta"></div>
+          <div class="wallet-device-list hidden" id="walletDeviceList"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="network">network</label>
+            <input id="network" value="helium" />
+          </div>
+          <div class="form-group">
+            <label for="dateMode">Date mode</label>
+            <select id="dateMode">
+              <option value="manual">Manual start/end</option>
+              <option value="relative">Quick range (last N days)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row" id="manualDateRow">
+          <div class="form-group">
+            <label for="startDay">start_day</label>
+            <input id="startDay" type="date" value="2026-03-27" />
+          </div>
+          <div class="form-group">
+            <label for="endDay">end_day</label>
+            <input id="endDay" type="date" value="2026-04-25" />
+          </div>
+        </div>
+        <div class="form-row hidden" id="relativeDateRow">
+          <div class="form-group">
+            <label for="lastDays">Quick range</label>
+            <select id="lastDays">
+              <option value="1">Last 1 day</option>
+              <option value="15">Last 15 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="45">Last 45 days</option>
+              <option value="60">Last 60 days</option>
+              <option value="120">Last 120 days</option>
+              <option value="180">Last 180 days</option>
+              <option value="270">Last 270 days</option>
+              <option value="365">Last 365 days</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label for="apiKey">x-api-key (header)</label>
+          <input id="apiKey" value="nxs_live_ak_HhvpmnEAsU0q_rYpeK_8-a59HnaC4-GVIusFsqdvOAJrSrr9WV0AFPg0" />
+        </div>
+
+        <div class="form-group full">
+          <label for="nexusToken">x-nexus-token (optional header)</label>
+          <input id="nexusToken" value="a7369f42f75cca757a461ad5710350fc05bfdfc43164b210b5f2586c3863003c" />
+        </div>
+
+        <div class="form-group full">
+          <label class="checkbox-row" for="includeApiKeyQuery">
+            <input id="includeApiKeyQuery" type="checkbox" />
+            Also include <code>api_key</code> in query string
+          </label>
+        </div>
+
+        <button class="button success" id="runBtn">Run Batch</button>
+        <button class="button info" id="copyAggBtn">Copy aggregated daily CSV</button>
+        <button class="button info" id="clearBtn">Clear</button>
+
+        <div class="loading" id="loading">
+          <span class="spinner"></span><span id="loadingText">Running batch...</span>
+        </div>
+        <div class="result" id="result"></div>
+
+        <div class="summary-grid hidden" id="summaryGrid"></div>
+
+        <div class="chart-wrap hidden" id="chartWrap">
+          <h3>Batch daily rewards (sum across devices)</h3>
+          <div class="chart-canvas-wrap">
+            <canvas id="rewardsChart"></canvas>
+          </div>
+        </div>
+
+        <pre id="responseBox" class="hidden"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const els = {
+      baseUrl: document.getElementById("baseUrl"),
+      deviceIds: document.getElementById("deviceIds"),
+      walletAddress: document.getElementById("walletAddress"),
+      fetchWalletBtn: document.getElementById("fetchWalletBtn"),
+      selectAllWalletBtn: document.getElementById("selectAllWalletBtn"),
+      clearWalletSelectionBtn: document.getElementById("clearWalletSelectionBtn"),
+      replaceWithSelectedBtn: document.getElementById("replaceWithSelectedBtn"),
+      appendSelectedBtn: document.getElementById("appendSelectedBtn"),
+      walletNamePaste: document.getElementById("walletNamePaste"),
+      walletMeta: document.getElementById("walletMeta"),
+      walletDeviceList: document.getElementById("walletDeviceList"),
+      network: document.getElementById("network"),
+      dateMode: document.getElementById("dateMode"),
+      manualDateRow: document.getElementById("manualDateRow"),
+      relativeDateRow: document.getElementById("relativeDateRow"),
+      lastDays: document.getElementById("lastDays"),
+      startDay: document.getElementById("startDay"),
+      endDay: document.getElementById("endDay"),
+      apiKey: document.getElementById("apiKey"),
+      nexusToken: document.getElementById("nexusToken"),
+      includeApiKeyQuery: document.getElementById("includeApiKeyQuery"),
+      runBtn: document.getElementById("runBtn"),
+      copyAggBtn: document.getElementById("copyAggBtn"),
+      clearBtn: document.getElementById("clearBtn"),
+      loading: document.getElementById("loading"),
+      loadingText: document.getElementById("loadingText"),
+      result: document.getElementById("result"),
+      summaryGrid: document.getElementById("summaryGrid"),
+      chartWrap: document.getElementById("chartWrap"),
+      rewardsChart: document.getElementById("rewardsChart"),
+      responseBox: document.getElementById("responseBox"),
+    };
+
+    let chartInstance = null;
+    let lastAggregateRows = [];
+    let lastWalletDevices = [];
+
+    function formatDateYmd(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function getEffectiveDateRange() {
+      if (els.dateMode.value === "relative") {
+        const days = parseInt(els.lastDays.value, 10) || 1;
+        const end = new Date();
+        const start = new Date(end);
+        start.setDate(end.getDate() - (days - 1));
+        return { startDay: formatDateYmd(start), endDay: formatDateYmd(end) };
+      }
+      return { startDay: els.startDay.value, endDay: els.endDay.value };
+    }
+
+    function parseDeviceIds() {
+      const lines = els.deviceIds.value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+      return Array.from(new Set(lines));
+    }
+
+    function setDeviceIds(list) {
+      els.deviceIds.value = list.join("\n");
+    }
+
+    function normalizeAnimalName(raw) {
+      return String(raw || "").trim().toLowerCase().replace(/\s+/g, "-");
+    }
+
+    function parsePastedAnimalNames() {
+      return Array.from(
+        new Set(
+          els.walletNamePaste.value
+            .split(/\r?\n/)
+            .map((s) => normalizeAnimalName(s))
+            .filter(Boolean)
+        )
+      );
+    }
+
+    function setPastedAnimalNames(names) {
+      els.walletNamePaste.value = Array.from(new Set(names)).join("\n");
+    }
+
+    function getSelectedWalletKeys() {
+      return Array.from(document.querySelectorAll(".wallet-device-check:checked"))
+        .map((cb) => cb.dataset.key || "")
+        .filter(Boolean);
+    }
+
+    function renderWalletDeviceList() {
+      if (!lastWalletDevices.length) {
+        els.walletDeviceList.classList.add("hidden");
+        els.walletDeviceList.innerHTML = "";
+        return;
+      }
+      els.walletDeviceList.classList.remove("hidden");
+      els.walletDeviceList.innerHTML = lastWalletDevices
+        .map(
+          (d) => `
+          <label class="wallet-device-row">
+            <div>
+              <div class="wallet-device-name">${d.name || "Unnamed hotspot"}</div>
+              <div class="wallet-device-key">${d.key}</div>
+            </div>
+            <input class="wallet-device-check" type="checkbox" data-key="${d.key}" data-name="${d.normalizedName}" />
+          </label>
+        `
+        )
+        .join("");
+      syncChecksFromPaste();
+      els.walletDeviceList.querySelectorAll(".wallet-device-check").forEach((cb) => {
+        cb.addEventListener("change", syncPasteFromChecks);
+      });
+    }
+
+    function syncChecksFromPaste() {
+      const wanted = new Set(parsePastedAnimalNames());
+      document.querySelectorAll(".wallet-device-check").forEach((cb) => {
+        const nm = cb.dataset.name || "";
+        cb.checked = wanted.has(nm);
+      });
+      updateWalletMetaSelection();
+    }
+
+    function syncPasteFromChecks() {
+      const names = Array.from(document.querySelectorAll(".wallet-device-check:checked"))
+        .map((cb) => cb.dataset.name || "")
+        .filter(Boolean);
+      setPastedAnimalNames(names);
+      updateWalletMetaSelection();
+    }
+
+    function updateWalletMetaSelection() {
+      const selectedCount = document.querySelectorAll(".wallet-device-check:checked").length;
+      if (!lastWalletDevices.length) return;
+      els.walletMeta.textContent = `Wallet devices: ${lastWalletDevices.length}. Selected: ${selectedCount}. Paste names to auto-select.`;
+    }
+
+    function getEntityKeyString(hotspot) {
+      const attr = Array.isArray(hotspot?.attributes)
+        ? hotspot.attributes.find((a) => a?.trait_type === "entity_key_string")
+        : null;
+      return attr?.value ?? hotspot?.entity_key_str ?? "";
+    }
+
+    function daysBetweenInclusive(startYmd, endYmd) {
+      const s = new Date(`${startYmd}T00:00:00`);
+      const e = new Date(`${endYmd}T00:00:00`);
+      return Math.max(1, Math.floor((e - s) / 86400000) + 1);
+    }
+
+    function fmt(n, decimals = 3) {
+      return Number(n).toLocaleString(undefined, { maximumFractionDigits: decimals });
+    }
+
+    function setDateModeUI() {
+      const relative = els.dateMode.value === "relative";
+      els.manualDateRow.classList.toggle("hidden", relative);
+      els.relativeDateRow.classList.toggle("hidden", !relative);
+    }
+
+    function showLoading(text = "Running batch...") {
+      els.loadingText.textContent = text;
+      els.loading.style.display = "block";
+      els.result.style.display = "none";
+    }
+
+    function hideLoading() {
+      els.loading.style.display = "none";
+    }
+
+    function showResult(msg, type = "success") {
+      els.result.className = `result ${type}`;
+      els.result.textContent = msg;
+      els.result.style.display = "block";
+    }
+
+    function validate() {
+      if (!els.baseUrl.value.trim()) return "Base URL is required.";
+      if (!els.network.value.trim()) return "network is required.";
+      if (!els.apiKey.value.trim()) return "x-api-key is required.";
+      const ids = parseDeviceIds();
+      if (!ids.length) return "Add at least one device ID.";
+      const range = getEffectiveDateRange();
+      if (!range.startDay || !range.endDay) return "Date range is required.";
+      return "";
+    }
+
+    function buildUrl(deviceId) {
+      const base = els.baseUrl.value.trim().replace(/\/$/, "");
+      const range = getEffectiveDateRange();
+      const url = new URL(`${base}/api/nexus/rewards`);
+      url.searchParams.set("network", els.network.value.trim());
+      url.searchParams.set("device_id", deviceId);
+      url.searchParams.set("start_day", range.startDay);
+      url.searchParams.set("end_day", range.endDay);
+      if (els.includeApiKeyQuery.checked) {
+        url.searchParams.set("api_key", els.apiKey.value.trim());
+      }
+      return url.toString();
+    }
+
+    function buildHeaders() {
+      const headers = {
+        Accept: "application/json",
+        "x-api-key": els.apiKey.value.trim(),
+      };
+      if (els.nexusToken.value.trim()) {
+        headers["x-nexus-token"] = els.nexusToken.value.trim();
+      }
+      return headers;
+    }
+
+    async function fetchWalletDevices() {
+      const wallet = els.walletAddress.value.trim();
+      if (!wallet) {
+        showResult("Wallet address is required.", "error");
+        return [];
+      }
+      const url = `https://entities.nft.helium.io/v2/wallet/${encodeURIComponent(wallet)}`;
+      try {
+        els.fetchWalletBtn.disabled = true;
+        els.walletMeta.textContent = "Fetching wallet devices...";
+        const res = await fetch(url, { headers: { Accept: "application/json" } });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        const seen = new Set();
+        const devices = [];
+        for (const h of json.hotspots || []) {
+          const key = getEntityKeyString(h);
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          devices.push({
+            name: h?.name || "",
+            normalizedName: normalizeAnimalName(h?.name || ""),
+            key,
+          });
+        }
+        lastWalletDevices = devices;
+        renderWalletDeviceList();
+        updateWalletMetaSelection();
+        showResult(`Fetched ${lastWalletDevices.length} wallet device keys.`, "success");
+        return lastWalletDevices;
+      } catch (e) {
+        els.walletMeta.textContent = "Wallet fetch failed.";
+        showResult(`Wallet lookup failed: ${e?.message || "request failed"}`, "error");
+        return [];
+      } finally {
+        els.fetchWalletBtn.disabled = false;
+      }
+    }
+
+    function extractRowsFromResponse(json) {
+      if (!Array.isArray(json?.daily)) return [];
+      const rows = [];
+      for (const item of json.daily) {
+        const day = item?.day;
+        const reward = Number(item?.reward);
+        if (!day || !Number.isFinite(reward)) continue;
+        rows.push({ day, reward });
+      }
+      rows.sort((a, b) => a.day.localeCompare(b.day));
+      return rows;
+    }
+
+    function renderSummary(data) {
+      const avgMathId = "avgMathDetail";
+      els.summaryGrid.classList.remove("hidden");
+      els.summaryGrid.innerHTML = `
+        <div class="summary-card">
+          <div class="label">Devices requested</div>
+          <div class="value">${data.requested}</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">Devices success</div>
+          <div class="value">${data.success}</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">Devices failed</div>
+          <div class="value">${data.failed}</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">Batch total rewards</div>
+          <div class="value">${fmt(data.totalRewards, 6)}</div>
+        </div>
+        <div class="summary-card">
+          <div class="avg-help-row">
+            <div class="label">Batch average / day</div>
+            <button class="metric-help-btn" type="button" id="avgMathToggle" title="Show average math">?</button>
+          </div>
+          <div class="value">${fmt(data.avgPerDay, 6)}</div>
+          <div class="avg-math hidden" id="${avgMathId}">
+            Formula:<br><code>batch total rewards / calendar days in range</code><br>
+            ${fmt(data.totalRewards, 6)} / ${data.calendarDays} = ${fmt(data.avgPerDay, 6)}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderChart(rows) {
+      if (!rows.length) {
+        els.chartWrap.classList.add("hidden");
+        if (chartInstance) {
+          chartInstance.destroy();
+          chartInstance = null;
+        }
+        return;
+      }
+      els.chartWrap.classList.remove("hidden");
+      const labels = rows.map((r) => r.day);
+      const values = rows.map((r) => r.reward);
+      const ctx = els.rewardsChart.getContext("2d");
+      const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+      gradient.addColorStop(0, "rgba(22, 163, 74, 0.9)");
+      gradient.addColorStop(1, "rgba(22, 163, 74, 0.25)");
+
+      if (chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Batch rewards",
+              data: values,
+              backgroundColor: gradient,
+              borderColor: "rgba(22, 163, 74, 1)",
+              borderWidth: 1,
+              borderRadius: 4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { maxRotation: 45, minRotation: 45 }, grid: { display: false } },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: (value) => Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 }),
+              },
+            },
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              padding: 10,
+              titleFont: { size: 13, weight: "700" },
+              bodyFont: { size: 13, weight: "600" },
+              displayColors: false,
+              callbacks: {
+                label: (ctx) =>
+                  `Reward: ${Number(ctx.parsed.y).toLocaleString(undefined, { maximumFractionDigits: 6 })}`,
+              },
+            },
+          },
+          interaction: { mode: "index", intersect: false },
+        },
+      });
+    }
+
+    async function runBatch() {
+      const err = validate();
+      if (err) {
+        showResult(err, "error");
+        return;
+      }
+
+      const deviceIds = parseDeviceIds();
+      const headers = buildHeaders();
+      const range = getEffectiveDateRange();
+      const dayToReward = new Map();
+      const failures = [];
+      const rawResults = [];
+      let success = 0;
+
+      els.runBtn.disabled = true;
+      els.copyAggBtn.disabled = true;
+      showLoading(`Running ${deviceIds.length} requests...`);
+      els.summaryGrid.classList.add("hidden");
+      els.responseBox.classList.add("hidden");
+      els.responseBox.textContent = "";
+      renderChart([]);
+
+      try {
+        for (let i = 0; i < deviceIds.length; i++) {
+          const deviceId = deviceIds[i];
+          showLoading(`Device ${i + 1}/${deviceIds.length}: ${deviceId.slice(0, 14)}...`);
+          try {
+            const res = await fetch(buildUrl(deviceId), { headers });
+            const raw = await res.text();
+            let json = null;
+            try { json = JSON.parse(raw); } catch (_) {}
+
+            if (!res.ok || !json) {
+              failures.push({ deviceId, status: `HTTP ${res.status}` });
+              rawResults.push({ deviceId, ok: false, status: res.status, body: raw.slice(0, 1200) });
+              continue;
+            }
+
+            const rows = extractRowsFromResponse(json);
+            for (const row of rows) {
+              dayToReward.set(row.day, (dayToReward.get(row.day) || 0) + row.reward);
+            }
+            success += 1;
+            rawResults.push({ deviceId, ok: true, rows: rows.length });
+          } catch (e) {
+            failures.push({ deviceId, status: e?.message || "request failed" });
+            rawResults.push({ deviceId, ok: false, status: e?.message || "request failed" });
+          }
+        }
+
+        const aggregateRows = Array.from(dayToReward.entries())
+          .map(([day, reward]) => ({ day, reward }))
+          .sort((a, b) => a.day.localeCompare(b.day));
+        lastAggregateRows = aggregateRows;
+
+        const totalRewards = aggregateRows.reduce((sum, r) => sum + r.reward, 0);
+        const calendarDays = daysBetweenInclusive(range.startDay, range.endDay);
+        const avgPerDay = totalRewards / calendarDays;
+
+        renderSummary({
+          requested: deviceIds.length,
+          success,
+          failed: deviceIds.length - success,
+          totalRewards,
+          avgPerDay,
+          calendarDays,
+        });
+        renderChart(aggregateRows);
+
+        const failureNote = failures.length
+          ? `\nFailed devices (${failures.length}):\n${failures.map((f) => `- ${f.deviceId}: ${f.status}`).join("\n")}`
+          : "";
+        showResult(
+          `Batch complete.\nDevices: ${deviceIds.length}\nSuccess: ${success}\nFailed: ${deviceIds.length - success}\nDays aggregated: ${aggregateRows.length}${failureNote}`,
+          failures.length ? "error" : "success"
+        );
+
+        els.responseBox.classList.remove("hidden");
+        els.responseBox.textContent = JSON.stringify(
+          {
+            range,
+            requested: deviceIds.length,
+            success,
+            failed: deviceIds.length - success,
+            aggregate_daily: aggregateRows,
+            failures,
+            per_device: rawResults,
+          },
+          null,
+          2
+        );
+        els.copyAggBtn.disabled = aggregateRows.length === 0;
+      } finally {
+        hideLoading();
+        els.runBtn.disabled = false;
+      }
+    }
+
+    async function copyAggregateCsv() {
+      if (!lastAggregateRows.length) {
+        showResult("No aggregated data to copy yet.", "error");
+        return;
+      }
+      const lines = ["day,reward"];
+      for (const row of lastAggregateRows) {
+        lines.push(`${row.day},${row.reward}`);
+      }
+      await navigator.clipboard.writeText(lines.join("\n"));
+      showResult(`Copied ${lastAggregateRows.length} aggregated day rows as CSV.`, "success");
+    }
+
+    function clearAll() {
+      hideLoading();
+      showResult("", "success");
+      els.result.style.display = "none";
+      els.summaryGrid.classList.add("hidden");
+      els.summaryGrid.innerHTML = "";
+      els.responseBox.classList.add("hidden");
+      els.responseBox.textContent = "";
+      lastAggregateRows = [];
+      lastWalletDevices = [];
+      els.walletMeta.textContent = "";
+      els.walletNamePaste.value = "";
+      els.walletDeviceList.classList.add("hidden");
+      els.walletDeviceList.innerHTML = "";
+      renderChart([]);
+      els.copyAggBtn.disabled = true;
+    }
+
+    els.runBtn.addEventListener("click", runBatch);
+    els.fetchWalletBtn.addEventListener("click", fetchWalletDevices);
+    els.selectAllWalletBtn.addEventListener("click", async () => {
+      if (!lastWalletDevices.length) await fetchWalletDevices();
+      document.querySelectorAll(".wallet-device-check").forEach((cb) => (cb.checked = true));
+      const count = getSelectedWalletKeys().length;
+      showResult(`Selected ${count} wallet devices.`, "success");
+    });
+    els.clearWalletSelectionBtn.addEventListener("click", () => {
+      document.querySelectorAll(".wallet-device-check").forEach((cb) => (cb.checked = false));
+      showResult("Cleared wallet selection.", "success");
+    });
+    els.replaceWithSelectedBtn.addEventListener("click", async () => {
+      if (!lastWalletDevices.length) await fetchWalletDevices();
+      const selected = getSelectedWalletKeys();
+      if (!selected.length) {
+        showResult("Select at least one wallet device.", "error");
+        return;
+      }
+      setDeviceIds(selected);
+      showResult(`Replaced scrape list with ${selected.length} selected wallet devices.`, "success");
+    });
+    els.appendSelectedBtn.addEventListener("click", async () => {
+      if (!lastWalletDevices.length) await fetchWalletDevices();
+      const selected = getSelectedWalletKeys();
+      if (!selected.length) {
+        showResult("Select at least one wallet device.", "error");
+        return;
+      }
+      const merged = Array.from(new Set([...parseDeviceIds(), ...selected]));
+      setDeviceIds(merged);
+      showResult(`Added ${selected.length} selected wallet devices. Scrape list total: ${merged.length}.`, "success");
+    });
+    els.walletNamePaste.addEventListener("input", syncChecksFromPaste);
+    els.copyAggBtn.addEventListener("click", copyAggregateCsv);
+    els.clearBtn.addEventListener("click", clearAll);
+    els.dateMode.addEventListener("change", setDateModeUI);
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest("#avgMathToggle");
+      if (!btn) return;
+      const panel = document.getElementById("avgMathDetail");
+      if (!panel) return;
+      panel.classList.toggle("hidden");
+    });
+    setDateModeUI();
+    els.copyAggBtn.disabled = true;
+  </script>
+</body>
+</html>

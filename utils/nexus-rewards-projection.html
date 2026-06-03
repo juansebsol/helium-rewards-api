@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus Rewards Projection</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --soft: #f3f4f6;
+      --primary: #16a34a;
+      --success: #16a34a;
+      --accent: #2563eb;
+      --warn: #d97706;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px;
+    }
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .header { padding: 16px 18px; border-bottom: 1px solid var(--border); }
+    .header h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+    .header p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+    .content { padding: 18px; }
+    .section { margin-bottom: 22px; }
+    .section:last-child { margin-bottom: 0; }
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .hint-text {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .form-group { margin-bottom: 12px; }
+    .form-row .form-group { flex: 1; min-width: 220px; }
+    .form-group.full { width: 100%; }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      background: white;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: rgba(37, 99, 235, 0.7);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+    .button {
+      appearance: none;
+      border: 1px solid rgba(0,0,0,0);
+      background: var(--primary);
+      color: white;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    .button:hover { filter: brightness(0.97); }
+    .button:active { filter: brightness(0.94); }
+    .button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .button.info { background: var(--soft); color: var(--text); border-color: var(--border); }
+    .result {
+      display: none;
+      margin-top: 12px;
+      border-radius: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      background: white;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .result.success { border-color: rgba(22,163,74,0.35); background: rgba(22,163,74,0.08); }
+    .result.error { border-color: rgba(220,38,38,0.35); background: rgba(220,38,38,0.08); }
+    .result.warn { border-color: rgba(217,119,6,0.35); background: rgba(217,119,6,0.08); }
+    .loading {
+      display: none;
+      margin: 10px 0;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      background: white;
+    }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(17,24,39,0.15);
+      border-top-color: rgba(17,24,39,0.5);
+      border-radius: 999px;
+      animation: spin 0.8s linear infinite;
+      vertical-align: -2px;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: white;
+      padding: 12px;
+    }
+    .panel h3 { margin: 0 0 8px; font-size: 14px; }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: var(--soft);
+    }
+    .metric .label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .metric .value {
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .metric.accent .value { color: var(--accent); }
+    .metric.primary .value { color: var(--primary); }
+    .metric.warn .value { color: var(--warn); }
+    .chart-canvas-wrap {
+      position: relative;
+      width: 100%;
+      height: 320px;
+    }
+    .hidden { display: none; }
+    .small-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+    .row-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 720px) {
+      .row-2col { grid-template-columns: 1fr; }
+    }
+    code {
+      background: var(--soft);
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    pre {
+      margin: 0;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: white;
+      overflow: auto;
+      max-height: 280px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Nexus Rewards Projection</h1>
+      <p>Historical device rewards, HNT/USD price trend, and future projection in one view.</p>
+    </div>
+
+    <div class="content">
+      <div class="section">
+        <h2>1. Inputs</h2>
+
+        <div class="form-group full">
+          <label for="baseUrl">Nexus Base URL</label>
+          <input id="baseUrl" value="https://nexus.fractals.finance" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="network">network</label>
+            <input id="network" value="helium" />
+          </div>
+          <div class="form-group">
+            <label for="deviceId">device_id</label>
+            <input id="deviceId" value="13XoAGeJYSbViwt9CT3EYdaeA4eXgnM2gZUkgBvyuCvnwcQk9mk" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="monthsBack">Historical window</label>
+            <select id="monthsBack">
+              <option value="1">Last 1 month</option>
+              <option value="2">Last 2 months</option>
+              <option value="3" selected>Last 3 months</option>
+              <option value="6">Last 6 months</option>
+              <option value="12">Last 12 months</option>
+              <option value="24">Last 24 months</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="coingeckoId">CoinGecko coin id</label>
+            <input id="coingeckoId" value="helium" />
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label for="apiKey">x-api-key (header)</label>
+          <input id="apiKey" value="nxs_live_ak_HhvpmnEAsU0q_rYpeK_8-a59HnaC4-GVIusFsqdvOAJrSrr9WV0AFPg0" />
+        </div>
+
+        <div class="form-group full">
+          <label for="nexusToken">x-nexus-token (optional header)</label>
+          <input id="nexusToken" value="a7369f42f75cca757a461ad5710350fc05bfdfc43164b210b5f2586c3863003c" />
+        </div>
+
+        <button class="button" id="runBtn">Fetch Historical Data</button>
+        <button class="button info" id="clearBtn">Clear</button>
+
+        <div class="loading" id="loading">
+          <span class="spinner"></span><span id="loadingText">Working...</span>
+        </div>
+        <div class="result" id="result"></div>
+      </div>
+
+      <div class="section hidden" id="rewardsSection">
+        <h2>2. Historical Rewards (HNT)</h2>
+        <div class="panel">
+          <div class="metrics" id="rewardsMetrics"></div>
+          <div class="chart-canvas-wrap">
+            <canvas id="rewardsChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="section hidden" id="rewardsUsdSection">
+        <h2>3. Historical Rewards (USD)</h2>
+        <div class="panel">
+          <p class="hint-text" style="margin-top: 0">
+            Daily USD = HNT earned that day × HNT/USD price that day.
+          </p>
+          <div class="metrics" id="rewardsUsdMetrics"></div>
+          <div class="chart-canvas-wrap">
+            <canvas id="rewardsUsdChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="section hidden" id="priceSection">
+        <h2>4. Historical HNT / USD Price</h2>
+        <div class="panel">
+          <div class="metrics" id="priceMetrics"></div>
+          <div class="chart-canvas-wrap">
+            <canvas id="priceChart"></canvas>
+          </div>
+          <p class="small-note">
+            Price data via CoinGecko Public API
+            (<code>/coins/{id}/market_chart</code>). Linear trend line fitted by
+            least-squares on daily close prices.
+          </p>
+        </div>
+      </div>
+
+      <div class="section hidden" id="projectionSection">
+        <h2>5. Future Projection</h2>
+
+        <div class="panel" style="margin-bottom: 12px">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="monthsForward">Project forward</label>
+              <select id="monthsForward">
+                <option value="1">1 month</option>
+                <option value="3" selected>3 months</option>
+                <option value="6">6 months</option>
+                <option value="12">12 months</option>
+                <option value="24">24 months</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="priceTrendMode">Price trend method</label>
+              <select id="priceTrendMode">
+                <option value="linear" selected>Linear extrapolation (least-squares)</option>
+                <option value="flat">Hold at latest price</option>
+                <option value="avg">Hold at historical average</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="rewardMode">Reward assumption</label>
+              <select id="rewardMode">
+                <option value="avg" selected>Daily average from historical window</option>
+                <option value="median">Daily median from historical window</option>
+                <option value="last30">Average of last 30 historical days</option>
+              </select>
+            </div>
+          </div>
+          <p class="small-note">
+            Uses your selected <strong>reward assumption</strong> as a fixed
+            daily HNT rate for every future day, then multiplies by the
+            projected USD price (per trend method). Charts and totals below
+            are <strong>future-only</strong> from today forward — no
+            historical rewards included. Does not model halvings, decay, or
+            network growth.
+          </p>
+        </div>
+
+        <div class="panel">
+          <div class="metrics" id="projectionMetrics"></div>
+          <div class="chart-canvas-wrap">
+            <canvas id="projectionChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const els = {
+      baseUrl: document.getElementById("baseUrl"),
+      network: document.getElementById("network"),
+      deviceId: document.getElementById("deviceId"),
+      monthsBack: document.getElementById("monthsBack"),
+      coingeckoId: document.getElementById("coingeckoId"),
+      apiKey: document.getElementById("apiKey"),
+      nexusToken: document.getElementById("nexusToken"),
+      runBtn: document.getElementById("runBtn"),
+      clearBtn: document.getElementById("clearBtn"),
+      loading: document.getElementById("loading"),
+      loadingText: document.getElementById("loadingText"),
+      result: document.getElementById("result"),
+
+      rewardsSection: document.getElementById("rewardsSection"),
+      rewardsMetrics: document.getElementById("rewardsMetrics"),
+      rewardsChart: document.getElementById("rewardsChart"),
+
+      rewardsUsdSection: document.getElementById("rewardsUsdSection"),
+      rewardsUsdMetrics: document.getElementById("rewardsUsdMetrics"),
+      rewardsUsdChart: document.getElementById("rewardsUsdChart"),
+
+      priceSection: document.getElementById("priceSection"),
+      priceMetrics: document.getElementById("priceMetrics"),
+      priceChart: document.getElementById("priceChart"),
+
+      projectionSection: document.getElementById("projectionSection"),
+      projectionMetrics: document.getElementById("projectionMetrics"),
+      projectionChart: document.getElementById("projectionChart"),
+      monthsForward: document.getElementById("monthsForward"),
+      priceTrendMode: document.getElementById("priceTrendMode"),
+      rewardMode: document.getElementById("rewardMode"),
+    };
+
+    let charts = { rewards: null, rewardsUsd: null, price: null, projection: null };
+    let state = {
+      rewards: [],      // [{ day: "YYYY-MM-DD", reward: number }]
+      prices: [],       // [{ day: "YYYY-MM-DD", price: number }]
+      priceTrend: null, // { slope, intercept, anchorDayIdx }
+    };
+
+    function fmtNum(n, decimals = 3) {
+      if (!Number.isFinite(n)) return "—";
+      return Number(n).toLocaleString(undefined, { maximumFractionDigits: decimals });
+    }
+    function fmtUsd(n, decimals = 2) {
+      if (!Number.isFinite(n)) return "—";
+      return "$" + Number(n).toLocaleString(undefined, { maximumFractionDigits: decimals });
+    }
+    function formatDateYmd(date) {
+      const y = date.getUTCFullYear();
+      const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(date.getUTCDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    function addDaysUtc(date, days) {
+      const d = new Date(date.getTime());
+      d.setUTCDate(d.getUTCDate() + days);
+      return d;
+    }
+    function addMonthsUtc(date, months) {
+      const d = new Date(date.getTime());
+      d.setUTCMonth(d.getUTCMonth() + months);
+      return d;
+    }
+    function parseYmdUtc(ymd) {
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d));
+    }
+    function showLoading(text) {
+      els.loadingText.textContent = text || "Working...";
+      els.loading.style.display = "block";
+    }
+    function hideLoading() {
+      els.loading.style.display = "none";
+    }
+    function showResult(msg, type = "success") {
+      els.result.className = `result ${type}`;
+      els.result.textContent = msg;
+      els.result.style.display = "block";
+    }
+    function clearResult() {
+      els.result.style.display = "none";
+      els.result.textContent = "";
+    }
+
+    function destroyChart(key) {
+      if (charts[key]) {
+        charts[key].destroy();
+        charts[key] = null;
+      }
+    }
+
+    function extractDailyRewardsRows(json) {
+      const candidateArrays = [];
+      if (Array.isArray(json)) candidateArrays.push(json);
+      if (Array.isArray(json?.data)) candidateArrays.push(json.data);
+      if (Array.isArray(json?.daily)) candidateArrays.push(json.daily);
+      if (Array.isArray(json?.rewards)) candidateArrays.push(json.rewards);
+      if (Array.isArray(json?.result)) candidateArrays.push(json.result);
+      if (Array.isArray(json?.results)) candidateArrays.push(json.results);
+
+      const rows = [];
+      for (const arr of candidateArrays) {
+        for (const item of arr) {
+          if (!item || typeof item !== "object") continue;
+          const day =
+            item.day || item.date || item.reward_day ||
+            item.transaction_date || item.start_day || item.end_day;
+          const reward =
+            item.rewards ?? item.reward ?? item.reward_amount ??
+            item.reward_amount_dc ?? item.total_rewards ?? item.amount;
+          if (!day || reward === undefined || reward === null) continue;
+          const num = Number(reward);
+          if (!Number.isFinite(num)) continue;
+          rows.push({ day: String(day).slice(0, 10), reward: num });
+        }
+        if (rows.length) break;
+      }
+      rows.sort((a, b) => a.day.localeCompare(b.day));
+      return rows;
+    }
+
+    async function fetchRewards(months) {
+      const base = els.baseUrl.value.trim().replace(/\/$/, "");
+      const end = new Date();
+      const start = addMonthsUtc(end, -months);
+      const url = new URL(`${base}/api/nexus/rewards`);
+      url.searchParams.set("network", els.network.value.trim() || "helium");
+      url.searchParams.set("device_id", els.deviceId.value.trim());
+      url.searchParams.set("start_day", formatDateYmd(start));
+      url.searchParams.set("end_day", formatDateYmd(end));
+
+      const headers = {
+        Accept: "application/json",
+        "x-api-key": els.apiKey.value.trim(),
+      };
+      if (els.nexusToken.value.trim()) {
+        headers["x-nexus-token"] = els.nexusToken.value.trim();
+      }
+      const res = await fetch(url.toString(), { headers });
+      const raw = await res.text();
+      if (!res.ok) {
+        throw new Error(`Rewards API HTTP ${res.status} ${res.statusText}: ${raw.slice(0, 300)}`);
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (_) {
+        throw new Error("Rewards API returned non-JSON response.");
+      }
+      return extractDailyRewardsRows(parsed);
+    }
+
+    async function fetchHntPrices(months) {
+      const id = els.coingeckoId.value.trim() || "helium";
+      const totalDays = Math.max(30, Math.ceil(months * 30.5));
+      const url = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=usd&days=${totalDays}`;
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`CoinGecko HTTP ${res.status} ${res.statusText}: ${text.slice(0, 200)}`);
+      }
+      const json = await res.json();
+      const raw = Array.isArray(json.prices) ? json.prices : [];
+
+      const byDay = new Map();
+      for (const [ts, price] of raw) {
+        if (!Number.isFinite(price)) continue;
+        const day = formatDateYmd(new Date(ts));
+        byDay.set(day, price);
+      }
+      const rows = Array.from(byDay.entries())
+        .map(([day, price]) => ({ day, price }))
+        .sort((a, b) => a.day.localeCompare(b.day));
+      return rows;
+    }
+
+    function buildRewardsUsdRows(rewards, prices) {
+      const priceByDay = new Map(prices.map(p => [p.day, p.price]));
+      let lastPrice = prices.length ? prices[0].price : 0;
+      return rewards.map(r => {
+        const price = priceByDay.get(r.day) ?? lastPrice;
+        lastPrice = price;
+        return { day: r.day, usd: r.reward * price, hnt: r.reward, price };
+      });
+    }
+
+    function renderRewardsUsdChart(rewards, prices) {
+      destroyChart("rewardsUsd");
+      if (!rewards.length || !prices.length) {
+        els.rewardsUsdSection.classList.add("hidden");
+        els.rewardsUsdMetrics.innerHTML = "";
+        return;
+      }
+      const rows = buildRewardsUsdRows(rewards, prices);
+      els.rewardsUsdSection.classList.remove("hidden");
+      const labels = rows.map(r => r.day);
+      const data = rows.map(r => r.usd);
+      const total = data.reduce((s, v) => s + v, 0);
+      const avg = total / data.length;
+      const sorted = [...data].sort((a, b) => a - b);
+      const median = sorted.length % 2
+        ? sorted[(sorted.length - 1) >> 1]
+        : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
+      const max = Math.max(...data);
+      const min = Math.min(...data);
+
+      els.rewardsUsdMetrics.innerHTML = `
+        <div class="metric"><div class="label">Days</div><div class="value">${data.length}</div></div>
+        <div class="metric accent"><div class="label">Total USD</div><div class="value">${fmtUsd(total, 2)}</div></div>
+        <div class="metric"><div class="label">Avg / day</div><div class="value">${fmtUsd(avg, 2)}</div></div>
+        <div class="metric"><div class="label">Median / day</div><div class="value">${fmtUsd(median, 2)}</div></div>
+        <div class="metric"><div class="label">Max / day</div><div class="value">${fmtUsd(max, 2)}</div></div>
+        <div class="metric"><div class="label">Min / day</div><div class="value">${fmtUsd(min, 2)}</div></div>
+      `;
+
+      const ctx = els.rewardsUsdChart.getContext("2d");
+      const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+      gradient.addColorStop(0, "rgba(37, 99, 235, 0.9)");
+      gradient.addColorStop(1, "rgba(37, 99, 235, 0.25)");
+
+      charts.rewardsUsd = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: "USD",
+            data,
+            backgroundColor: gradient,
+            borderColor: "rgba(37, 99, 235, 1)",
+            borderWidth: 1,
+            borderRadius: 3,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 16 }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { callback: v => fmtUsd(v, 2) } },
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              displayColors: false,
+              callbacks: {
+                label: c => `USD: ${fmtUsd(c.parsed.y, 4)}`,
+                afterLabel: c => {
+                  const row = rows[c.dataIndex];
+                  return `HNT: ${fmtNum(row.hnt, 5)} @ ${fmtUsd(row.price, 4)}`;
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function linearRegression(values) {
+      // values: array of numbers, x is index 0..n-1
+      const n = values.length;
+      if (n < 2) return { slope: 0, intercept: values[0] || 0 };
+      let sumX = 0, sumY = 0, sumXX = 0, sumXY = 0;
+      for (let i = 0; i < n; i++) {
+        sumX += i;
+        sumY += values[i];
+        sumXX += i * i;
+        sumXY += i * values[i];
+      }
+      const denom = n * sumXX - sumX * sumX;
+      if (denom === 0) return { slope: 0, intercept: sumY / n };
+      const slope = (n * sumXY - sumX * sumY) / denom;
+      const intercept = (sumY - slope * sumX) / n;
+      return { slope, intercept };
+    }
+
+    function renderRewardsChart(rows) {
+      destroyChart("rewards");
+      if (!rows.length) {
+        els.rewardsSection.classList.add("hidden");
+        els.rewardsMetrics.innerHTML = "";
+        return;
+      }
+      els.rewardsSection.classList.remove("hidden");
+      const labels = rows.map(r => r.day);
+      const data = rows.map(r => r.reward);
+      const total = data.reduce((s, v) => s + v, 0);
+      const avg = total / data.length;
+      const sorted = [...data].sort((a, b) => a - b);
+      const median = sorted.length % 2
+        ? sorted[(sorted.length - 1) >> 1]
+        : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
+      const max = Math.max(...data);
+      const min = Math.min(...data);
+
+      els.rewardsMetrics.innerHTML = `
+        <div class="metric"><div class="label">Days</div><div class="value">${data.length}</div></div>
+        <div class="metric primary"><div class="label">Total HNT</div><div class="value">${fmtNum(total, 4)}</div></div>
+        <div class="metric"><div class="label">Avg / day</div><div class="value">${fmtNum(avg, 5)}</div></div>
+        <div class="metric"><div class="label">Median / day</div><div class="value">${fmtNum(median, 5)}</div></div>
+        <div class="metric"><div class="label">Max / day</div><div class="value">${fmtNum(max, 5)}</div></div>
+        <div class="metric"><div class="label">Min / day</div><div class="value">${fmtNum(min, 5)}</div></div>
+      `;
+
+      const ctx = els.rewardsChart.getContext("2d");
+      const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+      gradient.addColorStop(0, "rgba(22, 163, 74, 0.9)");
+      gradient.addColorStop(1, "rgba(22, 163, 74, 0.25)");
+
+      charts.rewards = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: "HNT",
+            data,
+            backgroundColor: gradient,
+            borderColor: "rgba(22, 163, 74, 1)",
+            borderWidth: 1,
+            borderRadius: 3,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 16 }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { callback: v => fmtNum(v, 2) } },
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              displayColors: false,
+              callbacks: { label: c => `HNT: ${fmtNum(c.parsed.y, 6)}` },
+            },
+          },
+        },
+      });
+    }
+
+    function renderPriceChart(rows) {
+      destroyChart("price");
+      if (!rows.length) {
+        els.priceSection.classList.add("hidden");
+        els.priceMetrics.innerHTML = "";
+        state.priceTrend = null;
+        return;
+      }
+      els.priceSection.classList.remove("hidden");
+      const labels = rows.map(r => r.day);
+      const data = rows.map(r => r.price);
+      const { slope, intercept } = linearRegression(data);
+      state.priceTrend = { slope, intercept, n: data.length, firstDay: rows[0].day, lastDay: rows[rows.length - 1].day };
+
+      const trend = data.map((_, i) => slope * i + intercept);
+
+      const first = data[0];
+      const last = data[data.length - 1];
+      const pctChange = first > 0 ? ((last - first) / first) * 100 : 0;
+      const min = Math.min(...data);
+      const max = Math.max(...data);
+      const avg = data.reduce((s, v) => s + v, 0) / data.length;
+      const trendDirection = slope >= 0 ? "↑" : "↓";
+      const trendClass = slope >= 0 ? "primary" : "warn";
+      const annualizedPct = first > 0 && data.length > 1
+        ? ((Math.pow(last / first, 365 / (data.length - 1)) - 1) * 100)
+        : 0;
+
+      els.priceMetrics.innerHTML = `
+        <div class="metric accent"><div class="label">Latest price</div><div class="value">${fmtUsd(last, 4)}</div></div>
+        <div class="metric"><div class="label">Window start</div><div class="value">${fmtUsd(first, 4)}</div></div>
+        <div class="metric ${trendClass}"><div class="label">Period change</div><div class="value">${trendDirection} ${fmtNum(pctChange, 2)}%</div></div>
+        <div class="metric"><div class="label">Avg</div><div class="value">${fmtUsd(avg, 4)}</div></div>
+        <div class="metric"><div class="label">Min / Max</div><div class="value">${fmtUsd(min, 3)} / ${fmtUsd(max, 3)}</div></div>
+        <div class="metric"><div class="label">Trend (per day)</div><div class="value">${fmtUsd(slope, 5)}</div></div>
+        <div class="metric"><div class="label">Annualized (CAGR-like)</div><div class="value">${fmtNum(annualizedPct, 2)}%</div></div>
+      `;
+
+      const ctx = els.priceChart.getContext("2d");
+      charts.price = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "HNT/USD",
+              data,
+              borderColor: "rgba(37, 99, 235, 1)",
+              backgroundColor: "rgba(37, 99, 235, 0.15)",
+              borderWidth: 2,
+              pointRadius: 0,
+              tension: 0.2,
+              fill: true,
+            },
+            {
+              label: "Trend (linear)",
+              data: trend,
+              borderColor: "rgba(217, 119, 6, 1)",
+              borderDash: [6, 4],
+              borderWidth: 2,
+              pointRadius: 0,
+              fill: false,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 12 }, grid: { display: false } },
+            y: { ticks: { callback: v => fmtUsd(v, 3) } },
+          },
+          plugins: {
+            legend: { display: true, position: "top", labels: { boxWidth: 10 } },
+            tooltip: {
+              displayColors: false,
+              callbacks: { label: c => `${c.dataset.label}: ${fmtUsd(c.parsed.y, 5)}` },
+            },
+          },
+          interaction: { mode: "index", intersect: false },
+        },
+      });
+    }
+
+    function getProjectedDailyHnt() {
+      const rows = state.rewards;
+      if (!rows.length) return 0;
+      const data = rows.map(r => r.reward);
+      const mode = els.rewardMode.value;
+      if (mode === "median") {
+        const sorted = [...data].sort((a, b) => a - b);
+        return sorted.length % 2
+          ? sorted[(sorted.length - 1) >> 1]
+          : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
+      }
+      if (mode === "last30") {
+        const slice = data.slice(-30);
+        return slice.reduce((s, v) => s + v, 0) / slice.length;
+      }
+      return data.reduce((s, v) => s + v, 0) / data.length;
+    }
+
+    function getProjectedPriceForFutureDay(i) {
+      // i = 0 means first day after historical window
+      const prices = state.prices;
+      if (!prices.length) return 0;
+      const mode = els.priceTrendMode.value;
+      if (mode === "flat") return prices[prices.length - 1].price;
+      if (mode === "avg") {
+        return prices.reduce((s, p) => s + p.price, 0) / prices.length;
+      }
+      // linear
+      const t = state.priceTrend;
+      if (!t) return prices[prices.length - 1].price;
+      const futureIdx = t.n - 1 + (i + 1); // continue x past last historical index
+      const projected = t.slope * futureIdx + t.intercept;
+      return Math.max(projected, 0); // can't go negative
+    }
+
+    function renderProjectionChart() {
+      destroyChart("projection");
+      if (!state.rewards.length || !state.prices.length) {
+        els.projectionSection.classList.add("hidden");
+        return;
+      }
+      els.projectionSection.classList.remove("hidden");
+
+      const monthsForward = parseInt(els.monthsForward.value, 10) || 1;
+      const today = new Date();
+      const todayYmd = formatDateYmd(today);
+      const futureEnd = addMonthsUtc(today, monthsForward);
+      const totalFutureDays = Math.max(1, Math.round((futureEnd - today) / 86400000));
+
+      const dailyHnt = getProjectedDailyHnt();
+
+      const futureLabels = [];
+      const futureHntCum = [];
+      const futureUsdCum = [];
+      const futurePrice = [];
+      let cumHnt = 0;
+      let cumUsd = 0;
+      for (let i = 0; i < totalFutureDays; i++) {
+        const day = formatDateYmd(addDaysUtc(today, i + 1));
+        const price = getProjectedPriceForFutureDay(i);
+        cumHnt += dailyHnt;
+        cumUsd += dailyHnt * price;
+        futureLabels.push(day);
+        futureHntCum.push(cumHnt);
+        futureUsdCum.push(cumUsd);
+        futurePrice.push(price);
+      }
+
+      const projectedHnt = dailyHnt * totalFutureDays;
+      const projectedUsd = cumUsd;
+      const avgFuturePrice = futurePrice.reduce((s, v) => s + v, 0) / futurePrice.length;
+      const finalProjectedPrice = futurePrice[futurePrice.length - 1];
+
+      els.projectionMetrics.innerHTML = `
+        <div class="metric"><div class="label">Projection window</div><div class="value">${todayYmd} → ${futureLabels[futureLabels.length - 1] || todayYmd}</div></div>
+        <div class="metric"><div class="label">Future days</div><div class="value">${totalFutureDays}</div></div>
+        <div class="metric primary"><div class="label">Projected HNT</div><div class="value">${fmtNum(projectedHnt, 4)}</div></div>
+        <div class="metric accent"><div class="label">Projected USD</div><div class="value">${fmtUsd(projectedUsd, 2)}</div></div>
+        <div class="metric"><div class="label">Avg projected price</div><div class="value">${fmtUsd(avgFuturePrice, 4)}</div></div>
+        <div class="metric"><div class="label">Final projected price</div><div class="value">${fmtUsd(finalProjectedPrice, 4)}</div></div>
+      `;
+
+      const ctx = els.projectionChart.getContext("2d");
+      charts.projection = new Chart(ctx, {
+        data: {
+          labels: futureLabels,
+          datasets: [
+            {
+              type: "line",
+              label: "Cumulative projected USD",
+              data: futureUsdCum,
+              borderColor: "rgba(37, 99, 235, 1)",
+              backgroundColor: "rgba(37, 99, 235, 0.12)",
+              yAxisID: "yUsd",
+              borderWidth: 2,
+              pointRadius: 0,
+              tension: 0.2,
+              fill: true,
+            },
+            {
+              type: "line",
+              label: "Cumulative projected HNT",
+              data: futureHntCum,
+              borderColor: "rgba(22, 163, 74, 1)",
+              yAxisID: "yHnt",
+              borderWidth: 2,
+              pointRadius: 0,
+              tension: 0.2,
+              fill: false,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 16 }, grid: { display: false } },
+            yUsd: {
+              type: "linear",
+              position: "left",
+              title: { display: true, text: "USD (future)" },
+              ticks: { callback: v => fmtUsd(v, 0) },
+            },
+            yHnt: {
+              type: "linear",
+              position: "right",
+              title: { display: true, text: "HNT (future)" },
+              grid: { drawOnChartArea: false },
+              ticks: { callback: v => fmtNum(v, 2) },
+            },
+          },
+          plugins: {
+            legend: { position: "top", labels: { boxWidth: 10 } },
+            tooltip: {
+              callbacks: {
+                label: c => {
+                  if (c.parsed.y == null) return null;
+                  const isUsd = c.dataset.yAxisID === "yUsd";
+                  return `${c.dataset.label}: ${isUsd ? fmtUsd(c.parsed.y, 2) : fmtNum(c.parsed.y, 4) + " HNT"}`;
+                },
+              },
+            },
+          },
+          interaction: { mode: "index", intersect: false },
+        },
+      });
+    }
+
+    async function runAll() {
+      clearResult();
+      if (!els.deviceId.value.trim()) { showResult("device_id is required.", "error"); return; }
+      if (!els.apiKey.value.trim()) { showResult("x-api-key is required.", "error"); return; }
+
+      const months = parseInt(els.monthsBack.value, 10) || 1;
+      els.runBtn.disabled = true;
+      showLoading("Fetching device rewards...");
+      try {
+        const rewards = await fetchRewards(months);
+        state.rewards = rewards;
+        renderRewardsChart(rewards);
+        if (!rewards.length) {
+          showResult("Rewards API returned no daily rows for that window.", "warn");
+        }
+      } catch (e) {
+        renderRewardsChart([]);
+        showResult(String(e?.message || e), "error");
+        els.runBtn.disabled = false;
+        hideLoading();
+        return;
+      }
+
+      showLoading("Fetching HNT/USD price history from CoinGecko...");
+      try {
+        const prices = await fetchHntPrices(months);
+        state.prices = prices;
+        renderRewardsUsdChart(state.rewards, prices);
+        renderPriceChart(prices);
+        if (!prices.length) {
+          showResult("CoinGecko returned no price data.", "warn");
+        }
+      } catch (e) {
+        renderRewardsUsdChart([], []);
+        renderPriceChart([]);
+        showResult("Price fetch failed: " + (e?.message || e) + "\nRewards section is still shown.", "error");
+        els.runBtn.disabled = false;
+        hideLoading();
+        return;
+      }
+
+      renderProjectionChart();
+      showResult(
+        `Loaded ${state.rewards.length} reward days, ${state.prices.length} price days. Adjust projection controls below.`,
+        "success"
+      );
+      hideLoading();
+      els.runBtn.disabled = false;
+    }
+
+    function clearAll() {
+      clearResult();
+      state = { rewards: [], prices: [], priceTrend: null };
+      renderRewardsChart([]);
+      renderRewardsUsdChart([], []);
+      renderPriceChart([]);
+      destroyChart("projection");
+      els.projectionSection.classList.add("hidden");
+    }
+
+    els.runBtn.addEventListener("click", runAll);
+    els.clearBtn.addEventListener("click", clearAll);
+    els.monthsForward.addEventListener("change", renderProjectionChart);
+    els.priceTrendMode.addEventListener("change", renderProjectionChart);
+    els.rewardMode.addEventListener("change", renderProjectionChart);
+  </script>
+</body>
+</html>

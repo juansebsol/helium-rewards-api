@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Helium Index Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --soft: #f3f4f6;
+      --primary: #16a34a;
+      --accent: #2563eb;
+      --warn: #d97706;
+      --danger: #dc2626;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px;
+    }
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .header { padding: 16px 18px; border-bottom: 1px solid var(--border); }
+    .header h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+    .header p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+    .content { padding: 18px; }
+    .section { margin-bottom: 22px; }
+    .section:last-child { margin-bottom: 0; }
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .hint-text { margin: 0 0 10px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .form-group { margin-bottom: 12px; }
+    .form-row .form-group { flex: 1; min-width: 180px; }
+    .form-group.full { width: 100%; }
+    label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      background: white;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: rgba(37, 99, 235, 0.7);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+    .button {
+      appearance: none;
+      border: none;
+      background: var(--primary);
+      color: white;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    .button:hover { filter: brightness(0.97); }
+    .button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .button.info { background: var(--soft); color: var(--text); border: 1px solid var(--border); }
+    .button.accent { background: var(--accent); }
+    .loading {
+      display: none;
+      margin: 10px 0;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      background: white;
+    }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(17,24,39,0.15);
+      border-top-color: rgba(17,24,39,0.5);
+      border-radius: 999px;
+      animation: spin 0.8s linear infinite;
+      vertical-align: -2px;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .result {
+      display: none;
+      margin-top: 12px;
+      border-radius: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .result.success { border-color: rgba(22,163,74,0.35); background: rgba(22,163,74,0.08); }
+    .result.error { border-color: rgba(220,38,38,0.35); background: rgba(220,38,38,0.08); }
+    .result.warn { border-color: rgba(217,119,6,0.35); background: rgba(217,119,6,0.08); }
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: white;
+      padding: 12px;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      background: var(--soft);
+    }
+    .metric.featured {
+      background: white;
+      border-color: rgba(37, 99, 235, 0.25);
+    }
+    .metric .label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .metric .value { font-size: 18px; font-weight: 700; margin-top: 4px; }
+    .metric.featured .value { font-size: 22px; }
+    .metric.primary .value { color: var(--primary); }
+    .metric.accent .value { color: var(--accent); }
+    .metric.warn .value { color: var(--warn); }
+    .chart-canvas-wrap { position: relative; width: 100%; height: 280px; margin-top: 12px; }
+    .hidden { display: none; }
+    code {
+      background: var(--soft);
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .table-wrap { overflow-x: auto; }
+    .index-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .index-table th,
+    .index-table td {
+      padding: 8px 10px;
+      border-top: 1px solid var(--border);
+      text-align: left;
+    }
+    .index-table th {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: var(--soft);
+      font-weight: 700;
+    }
+    .index-table tr:hover td { background: rgba(17,24,39,0.02); }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+    }
+    .status-ok { color: var(--primary); font-weight: 600; }
+    .status-fail { color: var(--danger); font-weight: 600; }
+    .status-pending { color: var(--muted); }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: white;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .meta-row { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .small-note { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .checkbox-row input { width: auto; margin: 0; }
+    .progress-bar {
+      margin-top: 8px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--soft);
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      width: 0%;
+      transition: width 0.2s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Helium Index Dashboard</h1>
+      <p>Daily-reconstituted top-earner basket — new constituents each day via Nexus per-day rankings.</p>
+    </div>
+
+    <div class="content">
+      <div class="section">
+        <h2>1. Configuration</h2>
+        <p class="hint-text">
+          Uses <code>/api/nexus/helium/top-earners?day=YYYY-MM-DD</code> for each calendar day in the
+          window (daily reconstitution). Basket HNT = sum of that day’s <code>total_hnt</code> for all top-N.
+          End date is yesterday (last complete reward day).
+        </p>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nexusBaseUrl">Nexus base URL</label>
+            <input id="nexusBaseUrl" value="https://nexus.fractals.finance" />
+          </div>
+          <div class="form-group">
+            <label for="indexHistoryDays">Index history</label>
+            <select id="indexHistoryDays">
+              <option value="1">1 day</option>
+              <option value="7">7 days</option>
+              <option value="30" selected>30 days</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Date range</label>
+            <input type="text" id="indexRangeDisplay" readonly value="—" style="background: var(--soft); color: var(--muted);" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="indexSize">Index size (N)</label>
+            <select id="indexSize">
+              <option value="10">Top 10</option>
+              <option value="25">Top 25</option>
+              <option value="50">Top 50</option>
+              <option value="100">Top 100</option>
+              <option value="500" selected>Top 500</option>
+            </select>
+          </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="weightMode">Weighting</label>
+            <select id="weightMode">
+              <option value="earnings" selected>Earnings share (HNT in rank window)</option>
+              <option value="equal">Equal weight (1/N)</option>
+              <option value="rank">Rank-weighted</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="coingeckoId">CoinGecko coin id (HNT/USD)</label>
+            <input id="coingeckoId" value="helium" />
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label class="checkbox-row" for="fetchNames">
+            <input id="fetchNames" type="checkbox" />
+            Fetch hotspot names (slow for large N — batched)
+          </label>
+        </div>
+
+        <div class="form-group full">
+          <label for="apiKey">x-api-key (Nexus header)</label>
+          <input id="apiKey" value="nxs_live_ak_HhvpmnEAsU0q_rYpeK_8-a59HnaC4-GVIusFsqdvOAJrSrr9WV0AFPg0" />
+        </div>
+        <div class="form-group full">
+          <label for="nexusToken">x-nexus-token (optional)</label>
+          <input id="nexusToken" value="a7369f42f75cca757a461ad5710350fc05bfdfc43164b210b5f2586c3863003c" />
+        </div>
+
+        <div class="form-group full">
+          <label class="checkbox-row" for="includeApiKeyQuery">
+            <input id="includeApiKeyQuery" type="checkbox" />
+            Also include <code>api_key</code> in Nexus query string (same as API tester)
+          </label>
+        </div>
+
+        <button class="button" id="loadConstituentsBtn">Preview latest day</button>
+        <button class="button info" id="testNexusBtn">Test Nexus auth</button>
+        <button class="button accent" id="buildIndexBtn">Build Helium Index</button>
+        <button class="button info" id="clearBtn">Clear</button>
+
+        <div class="loading" id="loading">
+          <span class="spinner"></span><span id="loadingText">Working...</span>
+        </div>
+        <div class="result" id="result"></div>
+        <div class="progress-bar hidden" id="progressBar">
+          <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
+        <div class="meta-row" id="metaRow"></div>
+      </div>
+
+      <div class="section hidden" id="constituentsSection">
+        <h2>2. Index constituents</h2>
+        <div class="panel table-wrap">
+          <table class="index-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Name</th>
+                <th>Weight</th>
+                <th>Day HNT</th>
+                <th>device_id</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="constituentsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section hidden" id="indexSection">
+        <h2>3. Index summary</h2>
+        <div class="panel">
+          <div class="metrics" id="indexMetrics"></div>
+          <div class="chart-canvas-wrap hidden" id="indexChartWrap">
+            <canvas id="indexChart"></canvas>
+          </div>
+          <p class="small-note">
+            Each day: sum <code>total_hnt</code> for all top-N from Nexus (paginated). If page fetches fail,
+            totals are understated — see Devices loaded / Incomplete days metrics.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const els = {
+      nexusBaseUrl: document.getElementById("nexusBaseUrl"),
+      indexHistoryDays: document.getElementById("indexHistoryDays"),
+      indexRangeDisplay: document.getElementById("indexRangeDisplay"),
+      indexSize: document.getElementById("indexSize"),
+      weightMode: document.getElementById("weightMode"),
+      fetchNames: document.getElementById("fetchNames"),
+      progressBar: document.getElementById("progressBar"),
+      progressFill: document.getElementById("progressFill"),
+      apiKey: document.getElementById("apiKey"),
+      nexusToken: document.getElementById("nexusToken"),
+      includeApiKeyQuery: document.getElementById("includeApiKeyQuery"),
+      loadConstituentsBtn: document.getElementById("loadConstituentsBtn"),
+      testNexusBtn: document.getElementById("testNexusBtn"),
+      buildIndexBtn: document.getElementById("buildIndexBtn"),
+      clearBtn: document.getElementById("clearBtn"),
+      loading: document.getElementById("loading"),
+      loadingText: document.getElementById("loadingText"),
+      result: document.getElementById("result"),
+      metaRow: document.getElementById("metaRow"),
+      constituentsSection: document.getElementById("constituentsSection"),
+      constituentsBody: document.getElementById("constituentsBody"),
+      indexSection: document.getElementById("indexSection"),
+      indexMetrics: document.getElementById("indexMetrics"),
+      indexChartWrap: document.getElementById("indexChartWrap"),
+      indexChart: document.getElementById("indexChart"),
+      coingeckoId: document.getElementById("coingeckoId"),
+    };
+
+    const ENTITIES_BASE = "https://entities.nft.helium.io";
+    const TOP_EARNERS_PAGE_SIZE = 100;
+    const TOP_EARNERS_PAGE_DELAY_MS = 400;
+    const TOP_EARNERS_DAY_DELAY_MS = 350;
+    const ENTITY_BATCH_SIZE = 8;
+    const ENTITY_BATCH_DELAY_MS = 700;
+    const ENTITY_CONCURRENCY = 2;
+
+    let state = {
+      constituents: [],
+      daySnapshots: [],
+      indexSeries: [],
+      priceByDay: null,
+    };
+    let chartIndex = null;
+    let tableRenderScheduled = false;
+    let abortRun = false;
+
+    function fmtNum(n, d = 3) {
+      if (!Number.isFinite(n)) return "—";
+      return Number(n).toLocaleString(undefined, { maximumFractionDigits: d });
+    }
+    function fmtUsd(n, d = 2) {
+      if (!Number.isFinite(n)) return "—";
+      return "$" + Number(n).toLocaleString(undefined, { maximumFractionDigits: d });
+    }
+    function fmtPct(n, d = 2) {
+      if (!Number.isFinite(n)) return "—";
+      const sign = n > 0 ? "+" : "";
+      return `${sign}${fmtNum(n, d)}%`;
+    }
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+    function formatDateYmd(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function getHistoryDays() {
+      return Math.max(1, parseInt(els.indexHistoryDays.value, 10) || 1);
+    }
+
+    /** End = yesterday; start = end − (days − 1). */
+    function getHistoryRange() {
+      const days = getHistoryDays();
+      const end = new Date();
+      end.setHours(0, 0, 0, 0);
+      end.setDate(end.getDate() - 1);
+      const start = new Date(end);
+      start.setDate(start.getDate() - (days - 1));
+      return {
+        startDay: formatDateYmd(start),
+        endDay: formatDateYmd(end),
+        days,
+      };
+    }
+
+    function normalizeNexusRange(range) {
+      let { startDay, endDay, days } = range;
+      if (!startDay || !endDay) {
+        const r = getHistoryRange();
+        return r;
+      }
+      if (startDay > endDay) {
+        const tmp = startDay;
+        startDay = endDay;
+        endDay = tmp;
+      }
+      return { startDay, endDay, days: days || 1 };
+    }
+    function showLoading(text) {
+      els.loadingText.textContent = text || "Working...";
+      els.loading.style.display = "block";
+    }
+    function hideLoading() { els.loading.style.display = "none"; }
+    function showResult(msg, type = "success") {
+      els.result.className = `result ${type}`;
+      els.result.textContent = msg;
+      els.result.style.display = "block";
+    }
+    function clearResult() {
+      els.result.style.display = "none";
+      els.result.textContent = "";
+    }
+    function setMeta(items) {
+      els.metaRow.innerHTML = items
+        .map((t) => `<span class="badge">${t}</span>`)
+        .join("");
+    }
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function setProgress(done, total) {
+      if (!total) {
+        els.progressBar.classList.add("hidden");
+        els.progressFill.style.width = "0%";
+        return;
+      }
+      els.progressBar.classList.remove("hidden");
+      const pct = Math.min(100, Math.round((done / total) * 100));
+      els.progressFill.style.width = `${pct}%`;
+    }
+
+    function scheduleConstituentsTableRender(force = false) {
+      if (force) {
+        tableRenderScheduled = false;
+        renderConstituentsTable();
+        return;
+      }
+      if (tableRenderScheduled) return;
+      tableRenderScheduled = true;
+      requestAnimationFrame(() => {
+        tableRenderScheduled = false;
+        renderConstituentsTable();
+      });
+    }
+
+    async function runInBatches(items, options, fn) {
+      const {
+        batchSize = 10,
+        batchDelayMs = 1000,
+        concurrency = 2,
+        onProgress,
+      } = options;
+      let done = 0;
+      for (let start = 0; start < items.length; start += batchSize) {
+        if (abortRun) break;
+        const batch = items.slice(start, start + batchSize);
+        await asyncPool(concurrency, batch, async (item, i) => {
+          if (abortRun) return;
+          await fn(item, start + i);
+          done++;
+          if (onProgress) onProgress(done, items.length);
+        });
+        if (start + batchSize < items.length && batchDelayMs > 0) {
+          await sleep(batchDelayMs);
+        }
+      }
+      return done;
+    }
+
+    function buildNexusTopEarnersUrl(day, page, perPage) {
+      const base = els.nexusBaseUrl.value.trim().replace(/\/$/, "");
+      const url = new URL(`${base}/api/nexus/helium/top-earners`);
+      url.searchParams.set("day", day);
+      url.searchParams.set("page", String(page));
+      url.searchParams.set("per_page", String(perPage));
+      if (els.includeApiKeyQuery.checked) {
+        url.searchParams.set("api_key", els.apiKey.value.trim());
+      }
+      return url.toString();
+    }
+
+    async function fetchNexusJson(url, attempt = 1) {
+      const maxAttempts = 3;
+      const res = await fetch(url, { headers: buildNexusHeaders() });
+      const text = await res.text();
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch (_) {
+        throw new Error(`Non-JSON (HTTP ${res.status}): ${text.slice(0, 200)}`);
+      }
+      const retryable = res.status === 429 || res.status >= 500;
+      if ((!res.ok || json?.ok === false) && retryable && attempt < maxAttempts) {
+        await sleep(TOP_EARNERS_PAGE_DELAY_MS * attempt * 2);
+        return fetchNexusJson(url, attempt + 1);
+      }
+      if (!res.ok || json?.ok === false) {
+        const msg = nexusResponseError(json, res.status);
+        const err = new Error(`${msg} (HTTP ${res.status})`);
+        err.status = res.status;
+        throw err;
+      }
+      return json;
+    }
+
+    function mapTopEarnerRows(batch) {
+      return (batch || [])
+        .map((row) => ({
+          rank: row.rank,
+          device_id: String(row.device_key || row.device_id || ""),
+          total_hnt: Number(row.total_hnt) || 0,
+          total_dc: Number(row.total_dc) || 0,
+        }))
+        .filter((x) => x.device_id);
+    }
+
+    /**
+     * Paginate top-earners for one day. Returns fetch meta so partial/failed pages are visible.
+     */
+    async function fetchNexusTopEarnersForDay(day, totalWanted) {
+      const allItems = [];
+      const errors = [];
+      let pagesOk = 0;
+      let pagesFailed = 0;
+      let apiTotal = null;
+      const totalPages = Math.ceil(totalWanted / TOP_EARNERS_PAGE_SIZE);
+      let page = 1;
+
+      while (allItems.length < totalWanted && page <= totalPages + 2) {
+        if (abortRun) break;
+        const perPage = Math.min(TOP_EARNERS_PAGE_SIZE, totalWanted - allItems.length);
+        const url = buildNexusTopEarnersUrl(day, page, perPage);
+        showLoading(`${day} — page ${page}/${totalPages} (${allItems.length}/${totalWanted})...`);
+
+        try {
+          const json = await fetchNexusJson(url);
+          const batch = mapTopEarnerRows(json.items);
+          if (typeof json.total === "number") apiTotal = json.total;
+
+          if (!batch.length) {
+            pagesFailed++;
+            errors.push(`page ${page}: empty items`);
+            break;
+          }
+
+          allItems.push(...batch);
+          pagesOk++;
+
+          const cap = Math.min(totalWanted, apiTotal || totalWanted);
+          if (allItems.length >= cap) break;
+
+          if (batch.length < perPage) {
+            errors.push(`page ${page}: short page (${batch.length}/${perPage})`);
+            break;
+          }
+
+          page++;
+          await sleep(TOP_EARNERS_PAGE_DELAY_MS);
+        } catch (e) {
+          pagesFailed++;
+          errors.push(`page ${page}: ${e?.message || e}`);
+          break;
+        }
+      }
+
+      const items = allItems.slice(0, totalWanted);
+      const complete = items.length >= totalWanted;
+      const sumHnt = items.reduce((s, c) => s + c.total_hnt, 0);
+
+      return {
+        items,
+        fetchMeta: {
+          day,
+          requested: totalWanted,
+          loaded: items.length,
+          complete,
+          pagesOk,
+          pagesFailed,
+          apiTotal,
+          sumHnt,
+          errors,
+        },
+      };
+    }
+
+    function basketHntTotal(items) {
+      return items.reduce((s, c) => s + (c.total_hnt || 0), 0);
+    }
+
+    function snapshotToConstituents(items, weightMode, fetchMeta) {
+      const status =
+        fetchMeta?.complete === false ? "partial" : items.length ? "ok" : "fail";
+      const base = items.map((row) => ({
+        rank: row.rank,
+        device_id: row.device_id,
+        total_hnt: row.total_hnt,
+        total_dc: row.total_dc,
+        name: "—",
+        weight: 0,
+        fetchStatus: status,
+        fetchError:
+          status === "partial"
+            ? `Loaded ${fetchMeta.loaded}/${fetchMeta.requested}`
+            : null,
+      }));
+      return computeWeights(base, weightMode);
+    }
+
+    function computeWeights(items, mode) {
+      const n = items.length;
+      if (!n) return [];
+      if (mode === "equal") {
+        const w = 1 / n;
+        return items.map((it) => ({ ...it, weight: w }));
+      }
+      if (mode === "rank") {
+        const denom = (n * (n + 1)) / 2;
+        return items.map((it) => ({
+          ...it,
+          weight: (n - it.rank + 1) / denom,
+        }));
+      }
+      const totalHnt = items.reduce((s, it) => s + (Number(it.total_hnt) || 0), 0);
+      if (totalHnt <= 0) {
+        const w = 1 / n;
+        return items.map((it) => ({ ...it, weight: w }));
+      }
+      return items.map((it) => ({
+        ...it,
+        weight: (Number(it.total_hnt) || 0) / totalHnt,
+      }));
+    }
+
+    async function fetchJson(url, headers = {}) {
+      const res = await fetch(url, {
+        headers: { Accept: "application/json", ...headers },
+      });
+      const text = await res.text();
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch (_) {
+        throw new Error(`Non-JSON (HTTP ${res.status}): ${text.slice(0, 200)}`);
+      }
+      if (!res.ok || json?.success === false || json?.ok === false) {
+        const msg = json?.error || json?.message || `HTTP ${res.status}`;
+        throw new Error(`${msg} (${url})`);
+      }
+      return json;
+    }
+
+    async function fetchEntityName(deviceKey) {
+      const key = encodeURIComponent(deviceKey);
+      const urls = [
+        `${ENTITIES_BASE}/${key}`,
+        `${ENTITIES_BASE}/v2/entity/${key}`,
+      ];
+      for (const url of urls) {
+        try {
+          const json = await fetchJson(url);
+          const name = json?.name || json?.hotspot?.name;
+          if (name) return name;
+        } catch (_) {}
+      }
+      return "—";
+    }
+
+    async function asyncPool(limit, items, fn) {
+      const results = new Array(items.length);
+      let idx = 0;
+      async function worker() {
+        while (idx < items.length) {
+          const i = idx++;
+          results[i] = await fn(items[i], i);
+        }
+      }
+      const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
+      await Promise.all(workers);
+      return results;
+    }
+
+    function validateConfig() {
+      if (!els.nexusBaseUrl.value.trim()) return "Nexus base URL is required.";
+      if (!els.apiKey.value.trim()) return "x-api-key is required for Nexus.";
+      return "";
+    }
+
+    function buildNexusHeaders() {
+      const key = els.apiKey.value.trim();
+      const headers = {
+        Accept: "application/json",
+        "x-api-key": key,
+      };
+      const token = els.nexusToken.value.trim();
+      if (token) headers["x-nexus-token"] = token;
+      return headers;
+    }
+
+    function nexusResponseError(json, status) {
+      if (json && typeof json === "object") {
+        if (json.ok === false && json.error) return String(json.error);
+        if (json.success === false && json.error) return String(json.error);
+        if (json.error) return String(json.error);
+        if (json.message) return String(json.message);
+      }
+      return status ? `HTTP ${status}` : "Request failed";
+    }
+
+    async function testNexusAuth() {
+      clearResult();
+      const err = validateConfig();
+      if (err) {
+        showResult(err, "error");
+        return;
+      }
+
+      const day = getHistoryRange().endDay;
+      els.testNexusBtn.disabled = true;
+      showLoading(`Testing Nexus top-earners (${day})...`);
+
+      try {
+        const url = buildNexusTopEarnersUrl(day, 1, 1);
+        const json = await fetchNexusJson(url);
+        const total = json.total ?? (json.items || []).length;
+        showResult(
+          `Nexus top-earners OK (day=${json.day || day}, total≈${total}).\n${url}`,
+          "success"
+        );
+      } catch (e) {
+        showResult(`Nexus test failed: ${e?.message || e}`, "error");
+      } finally {
+        hideLoading();
+        els.testNexusBtn.disabled = false;
+      }
+    }
+
+    function renderConstituentsTable() {
+      const list = state.constituents;
+      if (!list.length) {
+        els.constituentsSection.classList.add("hidden");
+        els.constituentsBody.innerHTML = "";
+        return;
+      }
+      els.constituentsSection.classList.remove("hidden");
+      els.constituentsBody.innerHTML = list
+        .map((c) => {
+          const keyShort = c.device_id.length > 18
+            ? `${c.device_id.slice(0, 10)}…${c.device_id.slice(-6)}`
+            : c.device_id;
+          const statusClass =
+            c.fetchStatus === "ok" ? "status-ok" :
+            c.fetchStatus === "partial" ? "status-pending" :
+            c.fetchStatus === "fail" ? "status-fail" : "status-pending";
+          const statusText =
+            c.fetchStatus === "ok" ? "OK" :
+            c.fetchStatus === "partial" ? (c.fetchError || "Partial") :
+            c.fetchStatus === "fail" ? (c.fetchError || "Failed") : "Pending";
+          return `<tr>
+            <td>${c.rank}</td>
+            <td>${escapeHtml(c.name || "—")}</td>
+            <td>${fmtNum((c.weight || 0) * 100, 2)}%</td>
+            <td>${fmtNum(c.total_hnt, 4)}</td>
+            <td class="mono" title="${escapeHtml(c.device_id)}">${escapeHtml(keyShort)}</td>
+            <td class="${statusClass}">${escapeHtml(statusText)}</td>
+          </tr>`;
+        })
+        .join("");
+    }
+
+    function enumerateDays(startDay, endDay) {
+      const days = [];
+      const cur = new Date(`${startDay}T00:00:00`);
+      const end = new Date(`${endDay}T00:00:00`);
+      while (cur <= end) {
+        days.push(formatDateYmd(cur));
+        cur.setDate(cur.getDate() + 1);
+      }
+      return days;
+    }
+
+    async function fetchHntPricesForDays(days) {
+      const id = els.coingeckoId.value.trim() || "helium";
+      const totalDays = Math.max(1, Math.min(365, days));
+      const url = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=usd&days=${totalDays}`;
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`CoinGecko HTTP ${res.status}: ${text.slice(0, 160)}`);
+      }
+      const json = await res.json();
+      const raw = Array.isArray(json.prices) ? json.prices : [];
+      const byDay = new Map();
+      for (const [ts, price] of raw) {
+        if (!Number.isFinite(price)) continue;
+        byDay.set(formatDateYmd(new Date(ts)), price);
+      }
+      return byDay;
+    }
+
+    function fillPricesForDays(allDays, priceByDay) {
+      const filled = new Map();
+      let last = priceByDay.size ? priceByDay.values().next().value : 0;
+      for (const day of allDays) {
+        if (priceByDay.has(day)) last = priceByDay.get(day);
+        filled.set(day, last);
+      }
+      return filled;
+    }
+
+    function computeIndexSeriesFromSnapshots(daySnapshots, priceByDay) {
+      const allDays = daySnapshots.map((s) => s.day);
+      const prices = fillPricesForDays(allDays, priceByDay);
+      return daySnapshots.map((snap) => {
+        const basketHnt = basketHntTotal(snap.items);
+        const price = prices.get(snap.day) || 0;
+        const meta = snap.fetchMeta || {};
+        return {
+          day: snap.day,
+          basketHnt,
+          basketUsd: basketHnt * price,
+          price,
+          n: snap.items.length,
+          requested: meta.requested || snap.items.length,
+          complete: meta.complete !== false,
+          pagesOk: meta.pagesOk ?? null,
+          pagesFailed: meta.pagesFailed ?? 0,
+          fetchErrors: meta.errors || [],
+        };
+      });
+    }
+
+    function destroyIndexChart() {
+      if (chartIndex) {
+        chartIndex.destroy();
+        chartIndex = null;
+      }
+    }
+
+    function renderIndexChart() {
+      const { indexSeries } = state;
+      if (!indexSeries || indexSeries.length < 2) {
+        els.indexChartWrap.classList.add("hidden");
+        destroyIndexChart();
+        return;
+      }
+      els.indexChartWrap.classList.remove("hidden");
+      const labels = indexSeries.map((r) => r.day);
+      const usdData = indexSeries.map((r) => r.basketUsd);
+      const ctx = els.indexChart.getContext("2d");
+      destroyIndexChart();
+      chartIndex = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label: "Basket USD",
+            data: usdData,
+            borderColor: "rgba(37, 99, 235, 1)",
+            backgroundColor: "rgba(37, 99, 235, 0.1)",
+            borderWidth: 2,
+            pointRadius: 2,
+            tension: 0.2,
+            fill: true,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 12 }, grid: { display: false } },
+            y: { ticks: { callback: (v) => fmtUsd(v, 0) } },
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              displayColors: false,
+              callbacks: {
+                label: (c) => {
+                  const row = indexSeries[c.dataIndex];
+                  return `USD: ${fmtUsd(row.basketUsd, 2)} · HNT: ${fmtNum(row.basketHnt, 3)}`;
+                },
+              },
+            },
+          },
+          interaction: { mode: "index", intersect: false },
+        },
+      });
+    }
+
+    function renderIndexSummary() {
+      const { indexSeries } = state;
+      if (!indexSeries?.length) {
+        els.indexSection.classList.add("hidden");
+        els.indexMetrics.innerHTML = "";
+        renderIndexChart();
+        return;
+      }
+
+      els.indexSection.classList.remove("hidden");
+
+      const last = indexSeries[indexSeries.length - 1];
+      const prev = indexSeries.length > 1 ? indexSeries[indexSeries.length - 2] : null;
+      const change1d =
+        prev && prev.basketUsd > 0
+          ? ((last.basketUsd - prev.basketUsd) / prev.basketUsd) * 100
+          : null;
+      const totalHnt = indexSeries.reduce((s, r) => s + r.basketHnt, 0);
+      const totalUsd = indexSeries.reduce((s, r) => s + r.basketUsd, 0);
+      const changeClass = change1d != null && change1d >= 0 ? "primary" : "warn";
+      const incompleteDays = indexSeries.filter((r) => !r.complete).length;
+      const coverage =
+        last.requested > 0
+          ? `${last.n}/${last.requested}`
+          : String(last.n);
+      const lowHntWarn =
+        last.requested >= 100 && last.basketHnt < last.requested * 0.5;
+
+      els.indexMetrics.innerHTML = `
+        <div class="metric"><div class="label">Latest day</div><div class="value">${escapeHtml(last.day)}</div></div>
+        <div class="metric featured accent"><div class="label">Top-N total USD (latest)</div><div class="value">${fmtUsd(last.basketUsd, 2)}</div></div>
+        <div class="metric featured primary"><div class="label">Top-N total HNT (latest)</div><div class="value">${fmtNum(last.basketHnt, 2)}</div></div>
+        <div class="metric ${changeClass}"><div class="label">1d change (basket USD)</div><div class="value">${change1d != null ? fmtPct(change1d) : "—"}</div></div>
+        <div class="metric"><div class="label">Devices loaded (latest)</div><div class="value">${coverage}</div></div>
+        <div class="metric ${incompleteDays ? "warn" : ""}"><div class="label">Incomplete days</div><div class="value">${incompleteDays}</div></div>
+        <div class="metric"><div class="label">Sum basket USD (${indexSeries.length}d)</div><div class="value">${fmtUsd(totalUsd, 2)}</div></div>
+        <div class="metric"><div class="label">Sum basket HNT (${indexSeries.length}d)</div><div class="value">${fmtNum(totalHnt, 2)}</div></div>
+        <div class="metric"><div class="label">HNT / USD (latest)</div><div class="value">${fmtUsd(last.price, 4)}</div></div>
+      `;
+
+      if (lowHntWarn || incompleteDays) {
+        const msgs = [];
+        if (incompleteDays) {
+          msgs.push(
+            `${incompleteDays} day(s) did not load all ${last.requested} devices — totals are understated. Check result box for page errors.`
+          );
+        }
+        if (lowHntWarn) {
+          msgs.push(
+            `Latest total HNT (${fmtNum(last.basketHnt, 0)}) looks too low for N=${last.requested}. Expected thousands of HNT if all pages loaded. Rebuild after fixing auth/rate limits.`
+          );
+        }
+        showResult(msgs.join("\n\n"), incompleteDays ? "warn" : "error");
+      }
+      renderIndexChart();
+    }
+
+    function updateRangeLabel() {
+      const range = getHistoryRange();
+      if (els.indexRangeDisplay) {
+        els.indexRangeDisplay.value =
+          range.days === 1 ? range.endDay : `${range.startDay} → ${range.endDay}`;
+      }
+    }
+
+    function recomputeIndexFromState() {
+      if (!state.daySnapshots.length || !state.priceByDay) return;
+      const nameById = new Map(
+        state.constituents.map((c) => [c.device_id, c.name])
+      );
+      state.indexSeries = computeIndexSeriesFromSnapshots(state.daySnapshots, state.priceByDay);
+      const lastSnap = state.daySnapshots[state.daySnapshots.length - 1];
+      state.constituents = lastSnap.items.map((c) => ({
+        ...c,
+        name: nameById.get(c.device_id) || c.name || "—",
+      }));
+      renderIndexSummary();
+      scheduleConstituentsTableRender(true);
+    }
+
+    async function loadConstituents() {
+      clearResult();
+      abortRun = false;
+      const cfgErr = validateConfig();
+      if (cfgErr) {
+        showResult(cfgErr, "error");
+        return;
+      }
+
+      const range = getHistoryRange();
+      const n = parseInt(els.indexSize.value, 10) || 500;
+      const day = range.endDay;
+
+      els.loadConstituentsBtn.disabled = true;
+      setProgress(0, 1);
+
+      try {
+        showLoading(`Loading top earners for ${day}...`);
+        const { items: rows, fetchMeta } = await fetchNexusTopEarnersForDay(day, n);
+        if (abortRun) return;
+        if (!rows.length) throw new Error("No constituents returned.");
+
+        state.constituents = snapshotToConstituents(rows, els.weightMode.value, fetchMeta);
+        scheduleConstituentsTableRender(true);
+
+        if (!fetchMeta.complete) {
+          showResult(
+            `Preview: ${fetchMeta.loaded}/${fetchMeta.requested} devices for ${day}.\n` +
+              `Sum HNT: ${fmtNum(fetchMeta.sumHnt, 2)}\n` +
+              (fetchMeta.errors.length ? fetchMeta.errors.join("\n") : ""),
+            "warn"
+          );
+        }
+
+        if (els.fetchNames.checked) {
+          setProgress(0, state.constituents.length);
+          await runInBatches(
+            state.constituents,
+            {
+              batchSize: ENTITY_BATCH_SIZE,
+              batchDelayMs: ENTITY_BATCH_DELAY_MS,
+              concurrency: ENTITY_CONCURRENCY,
+              onProgress: (done, total) => {
+                setProgress(done, total);
+                showLoading(`Fetching names ${done}/${total}...`);
+                scheduleConstituentsTableRender();
+              },
+            },
+            async (c) => {
+              c.name = await fetchEntityName(c.device_id);
+            }
+          );
+        }
+
+        setMeta([
+          `Preview day: ${day}`,
+          `Loaded: ${fetchMeta.loaded}/${fetchMeta.requested}`,
+          `Sum HNT: ${fmtNum(fetchMeta.sumHnt, 0)}`,
+        ]);
+        if (fetchMeta.complete) {
+          showResult(
+            `Preview OK: ${fetchMeta.loaded} devices, ${fmtNum(fetchMeta.sumHnt, 0)} HNT total for ${day}.`,
+            "success"
+          );
+        }
+      } catch (e) {
+        state.constituents = [];
+        scheduleConstituentsTableRender(true);
+        showResult(String(e?.message || e), "error");
+      } finally {
+        hideLoading();
+        setProgress(0, 0);
+        els.loadConstituentsBtn.disabled = false;
+      }
+    }
+
+    async function buildIndex() {
+      clearResult();
+      abortRun = false;
+      const cfgErr = validateConfig();
+      if (cfgErr) {
+        showResult(cfgErr, "error");
+        return;
+      }
+
+      const range = normalizeNexusRange(getHistoryRange());
+      const days = enumerateDays(range.startDay, range.endDay);
+      const n = parseInt(els.indexSize.value, 10) || 500;
+      const weightMode = els.weightMode.value;
+
+      els.buildIndexBtn.disabled = true;
+      els.loadConstituentsBtn.disabled = true;
+      setProgress(0, days.length);
+
+      try {
+        const daySnapshots = [];
+        const dayIssues = [];
+        for (let i = 0; i < days.length; i++) {
+          if (abortRun) break;
+          const day = days[i];
+          showLoading(`Day ${i + 1}/${days.length}: ${day}...`);
+          const { items: rows, fetchMeta } = await fetchNexusTopEarnersForDay(day, n);
+          if (!rows.length) {
+            dayIssues.push(`${day}: no data (${fetchMeta.errors.join("; ") || "empty"})`);
+            continue;
+          }
+          if (!fetchMeta.complete) {
+            dayIssues.push(
+              `${day}: ${fetchMeta.loaded}/${fetchMeta.requested} loaded, ` +
+                `${fmtNum(fetchMeta.sumHnt, 0)} HNT — ${fetchMeta.errors.join("; ")}`
+            );
+          }
+          daySnapshots.push({
+            day,
+            items: snapshotToConstituents(rows, weightMode, fetchMeta),
+            fetchMeta,
+          });
+          setProgress(i + 1, days.length);
+          if (i < days.length - 1) await sleep(TOP_EARNERS_DAY_DELAY_MS);
+        }
+
+        if (abortRun) {
+          showResult("Build cancelled.", "warn");
+          return;
+        }
+        if (!daySnapshots.length) {
+          showResult("No daily snapshots loaded.", "error");
+          return;
+        }
+
+        showLoading("Fetching HNT/USD (CoinGecko)...");
+        const priceByDay = await fetchHntPricesForDays(range.days);
+        if (!priceByDay.size) {
+          showResult("CoinGecko returned no HNT/USD prices for this window.", "error");
+          return;
+        }
+
+        state.daySnapshots = daySnapshots;
+        state.priceByDay = priceByDay;
+        state.indexSeries = computeIndexSeriesFromSnapshots(daySnapshots, priceByDay);
+        state.constituents = daySnapshots[daySnapshots.length - 1].items.map((c) => ({ ...c }));
+
+        scheduleConstituentsTableRender(true);
+        renderIndexSummary();
+        updateRangeLabel();
+
+        const pagesPerDay = Math.ceil(n / TOP_EARNERS_PAGE_SIZE);
+        setMeta([
+          `${range.startDay} → ${range.endDay}`,
+          `${daySnapshots.length} days`,
+          `N=${n}`,
+          `~${daySnapshots.length * pagesPerDay} top-earner requests`,
+        ]);
+
+        const incomplete = daySnapshots.filter((s) => !s.fetchMeta?.complete).length;
+        let msg =
+          `Index built: ${daySnapshots.length}/${days.length} days, ${range.startDay} → ${range.endDay}.\n` +
+          `Latest: ${fmtNum(state.indexSeries.at(-1)?.basketHnt, 0)} HNT total (${state.indexSeries.at(-1)?.n}/${n} devices).`;
+        if (dayIssues.length) {
+          msg += `\n\nIssues:\n${dayIssues.join("\n")}`;
+        }
+        if (incomplete) {
+          msg += `\n\n${incomplete} day(s) have incomplete top-earner pages — totals are lower than true top-${n} sum.`;
+        }
+        showResult(msg, incomplete || dayIssues.length ? "warn" : "success");
+      } catch (e) {
+        showResult(String(e?.message || e), "error");
+      } finally {
+        hideLoading();
+        setProgress(0, 0);
+        els.buildIndexBtn.disabled = false;
+        els.loadConstituentsBtn.disabled = false;
+      }
+    }
+
+    function clearAll() {
+      abortRun = true;
+      clearResult();
+      state = { constituents: [], daySnapshots: [], indexSeries: [], priceByDay: null };
+      els.metaRow.innerHTML = "";
+      scheduleConstituentsTableRender(true);
+      renderIndexSummary();
+      hideLoading();
+      setProgress(0, 0);
+    }
+
+    els.indexSize.addEventListener("change", () => {
+      const n = parseInt(els.indexSize.value, 10) || 500;
+      els.fetchNames.checked = n <= 50;
+    });
+    els.fetchNames.checked = parseInt(els.indexSize.value, 10) <= 50;
+    els.indexHistoryDays.addEventListener("change", updateRangeLabel);
+    updateRangeLabel();
+
+    els.loadConstituentsBtn.addEventListener("click", loadConstituents);
+    els.testNexusBtn.addEventListener("click", testNexusAuth);
+    els.buildIndexBtn.addEventListener("click", buildIndex);
+    els.clearBtn.addEventListener("click", clearAll);
+    els.weightMode.addEventListener("change", () => {
+      if (!state.daySnapshots.length) {
+        if (!state.constituents.length) return;
+        state.constituents = computeWeights(
+          state.constituents.map(({ rank, device_id, total_hnt, total_dc, name, fetchStatus, fetchError }) => ({
+            rank, device_id, total_hnt, total_dc, name, fetchStatus, fetchError,
+          })),
+          els.weightMode.value
+        );
+        renderConstituentsTable();
+        return;
+      }
+      const nameById = new Map(
+        state.constituents.map((c) => [c.device_id, c.name])
+      );
+      state.daySnapshots = state.daySnapshots.map((snap) => ({
+        day: snap.day,
+        items: computeWeights(
+          snap.items.map(({ rank, device_id, total_hnt, total_dc, name }) => ({
+            rank,
+            device_id,
+            total_hnt,
+            total_dc,
+            name: nameById.get(device_id) || name || "—",
+            fetchStatus: "ok",
+            fetchError: null,
+          })),
+          els.weightMode.value
+        ),
+      }));
+      recomputeIndexFromState();
+    });
+  </script>
+</body>
+</html>
