@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { loadIndexPayload } from "@/lib/index-data";
-import { fmtUsd, fmtNum, fmtDay } from "@/lib/format";
-import { ChangePill } from "@/components/ChangePill";
 import { HomePreviewChart } from "@/components/DashboardCharts";
+import { LiveTicker } from "@/components/LiveTicker";
 
 export const dynamic = "force-dynamic";
 
@@ -29,30 +28,10 @@ export default function HomePage() {
   return (
     <>
       {hasData && latest && (
-        <div className="ticker-strip container container-wide">
-          <div className="ticker-item">
-            <span className="ticker-label">HNT500</span>
-            <span>{fmtUsd(latest.basket_usd)}</span>
-            <ChangePill pct={stats?.changePct ?? null} />
-          </div>
-          <div className="ticker-item">
-            <span className="ticker-label">Basket HNT</span>
-            <span>{fmtNum(latest.basket_hnt, 0)}</span>
-          </div>
-          <div className="ticker-item">
-            <span className="ticker-label">Coverage</span>
-            <span>
-              {latest.constituent_count}/{latest.requested_n}
-            </span>
-          </div>
-          <div className="ticker-item">
-            <span className="ticker-label">As of</span>
-            <span>{fmtDay(latest.day)}</span>
-          </div>
-          <div className="ticker-item">
-            <span className="badge-live">Live</span>
-          </div>
-        </div>
+        <LiveTicker
+          basketUsd={latest.basket_usd}
+          changePct={stats?.changePct ?? null}
+        />
       )}
 
       <section className="hero">
