@@ -12,6 +12,7 @@ import {
   getHistoryRange,
 } from "@/lib/dates";
 import { fetchTopEarnersForDay } from "@/lib/nexus";
+import { resolveEntityNames } from "@/lib/entity-names";
 import { basketHntTotal, computeWeights } from "@/lib/weights";
 
 let building = false;
@@ -93,6 +94,12 @@ export async function buildIndexHistory(): Promise<BuildResult> {
       });
 
       const weighted = computeWeights(items, weightMode);
+      // Resolve animal names for this day's basket (cached across days)
+      const nameMap = await resolveEntityNames(
+        weighted.map((c) => c.device_id),
+        { maxLookups: weighted.length, concurrency: 12, writeConstituents: false }
+      );
+
       replaceConstituentsForDay(
         day,
         n,
@@ -103,6 +110,7 @@ export async function buildIndexHistory(): Promise<BuildResult> {
           total_hnt: c.total_hnt,
           total_dc: c.total_dc,
           weight: c.weight,
+          entity_name: c.entity_name || nameMap.get(c.device_id) || null,
         }))
       );
 

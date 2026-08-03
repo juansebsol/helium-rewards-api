@@ -5,6 +5,7 @@ export type TopEarnerItem = {
   device_id: string;
   total_hnt: number;
   total_dc: number;
+  entity_name: string | null;
 };
 
 export type TopEarnersFetchMeta = {
@@ -46,15 +47,22 @@ function mapBatch(
     device_id?: string;
     total_hnt?: number;
     total_dc?: number;
+    name?: string;
+    entity_name?: string;
   }>
 ): TopEarnerItem[] {
   return (items || [])
-    .map((row) => ({
-      rank: row.rank,
-      device_id: String(row.device_key || row.device_id || ""),
-      total_hnt: Number(row.total_hnt) || 0,
-      total_dc: Number(row.total_dc) || 0,
-    }))
+    .map((row) => {
+      const nameRaw = row.entity_name || row.name || "";
+      const entity_name = nameRaw.trim() ? nameRaw.trim() : null;
+      return {
+        rank: row.rank,
+        device_id: String(row.device_key || row.device_id || ""),
+        total_hnt: Number(row.total_hnt) || 0,
+        total_dc: Number(row.total_dc) || 0,
+        entity_name,
+      };
+    })
     .filter((x) => x.device_id);
 }
 

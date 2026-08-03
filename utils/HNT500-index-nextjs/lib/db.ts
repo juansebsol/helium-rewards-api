@@ -23,17 +23,32 @@ export type ConstituentRow = {
   total_hnt: number;
   total_dc: number;
   weight: number;
+  entity_name: string | null;
 };
 
 function migrateSchema(database: Database.Database): void {
-  const cols = database
+  const dayCols = database
     .prepare(`PRAGMA table_info(index_days)`)
     .all() as { name: string }[];
-  if (!cols.some((c) => c.name === "fetch_complete")) {
+  if (!dayCols.some((c) => c.name === "fetch_complete")) {
     database.exec(
       `ALTER TABLE index_days ADD COLUMN fetch_complete INTEGER NOT NULL DEFAULT 1`
     );
   }
+
+  const constCols = database
+    .prepare(`PRAGMA table_info(index_constituents)`)
+    .all() as { name: string }[];
+  if (constCols.length && !constCols.some((c) => c.name === "entity_name")) {
+    database.exec(
+      `ALTER TABLE index_constituents ADD COLUMN entity_name TEXT`
+    );
+  }
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_constituents_device
+      ON index_constituents (n, weight_mode, device_id, day);
+  `);
 }
 
 export type BuildLogRow = {
@@ -93,6 +108,7 @@ export function getDb(): Database.Database {
       total_hnt REAL NOT NULL,
       total_dc REAL NOT NULL,
       weight REAL NOT NULL,
+      entity_name TEXT,
       PRIMARY KEY (day, n, weight_mode, rank)
     );
 
@@ -178,13 +194,23 @@ export function replaceConstituentsForDay(
     `DELETE FROM index_constituents WHERE day = ? AND n = ? AND weight_mode = ?`
   );
   const ins = database.prepare(
-    `INSERT INTO index_constituents (day, n, weight_mode, rank, device_id, total_hnt, total_dc, weight)
-     VALUES (@day, @n, @weight_mode, @rank, @device_id, @total_hnt, @total_dc, @weight)`
+    `INSERT INTO index_constituents (day, n, weight_mode, rank, device_id, total_hnt, total_dc, weight, entity_name)
+     VALUES (@day, @n, @weight_mode, @rank, @device_id, @total_hnt, @total_dc, @weight, @entity_name)`
   );
   const run = database.transaction(() => {
     del.run(day, n, weightMode);
     for (const row of rows) {
-      ins.run({ day, n, weight_mode: weightMode, ...row });
+      ins.run({
+        day,
+        n,
+        weight_mode: weightMode,
+        rank: row.rank,
+        device_id: row.device_id,
+        total_hnt: row.total_hnt,
+        total_dc: row.total_dc,
+        weight: row.weight,
+        entity_name: row.entity_name ?? null,
+      });
     }
   });
   run();
@@ -197,12 +223,155 @@ export function getConstituentsForDay(
 ): ConstituentRow[] {
   return getDb()
     .prepare(
-      `SELECT rank, device_id, total_hnt, total_dc, weight
+      `SELECT rank, device_id, total_hnt, total_dc, weight, entity_name
        FROM index_constituents
        WHERE day = ? AND n = ? AND weight_mode = ?
        ORDER BY rank ASC`
     )
     .all(day, n, weightMode) as ConstituentRow[];
+}
+
+export function getDeviceHistory(
+  deviceId: string,
+  n: number,
+  weightMode: string,
+  throughDay: string,
+  lookbackDays: number
+): Array<{
+  day: string;
+  rank: number;
+  total_hnt: number;
+  total_dc: number;
+  weight: number;
+  entity_name: string | null;
+  basket_hnt: number | null;
+  hnt_price: number | null;
+}> {
+  const start = new Date(`${throughDay}T12:00:00Z`);
+  start.setUTCDate(start.getUTCDate() - Math.max(0, lookbackDays - 1));
+  const startDay = start.toISOString().slice(0, 10);
+
+  return getDb()
+    .prepare(
+      `SELECT c.day, c.rank, c.total_hnt, c.total_dc, c.weight, c.entity_name,
+              d.basket_hnt, d.hnt_price
+       FROM index_constituents c
+       LEFT JOIN index_days d
+         ON d.day = c.day AND d.n = c.n AND d.weight_mode = c.weight_mode
+       WHERE c.device_id = ?
+         AND c.n = ?
+         AND c.weight_mode = ?
+         AND c.day >= ?
+         AND c.day <= ?
+       ORDER BY c.day DESC`
+    )
+    .all(deviceId, n, weightMode, startDay, throughDay) as Array<{
+    day: string;
+    rank: number;
+    total_hnt: number;
+    total_dc: number;
+    weight: number;
+    entity_name: string | null;
+    basket_hnt: number | null;
+    hnt_price: number | null;
+  }>;
+}
+
+/** Calendar day immediately before `day` that has constituents stored. */
+export function getPreviousConstituentDay(
+  day: string,
+  n: number,
+  weightMode: string
+): string | null {
+  const row = getDb()
+    .prepare(
+      `SELECT day FROM index_constituents
+       WHERE n = ? AND weight_mode = ? AND day < ?
+       GROUP BY day
+       ORDER BY day DESC
+       LIMIT 1`
+    )
+    .get(n, weightMode, day) as { day: string } | undefined;
+  return row?.day ?? null;
+}
+
+/** Days each device appears in the stored index window (up to and including `throughDay`). */
+export function getDaysInIndexByDevice(
+  deviceIds: string[],
+  n: number,
+  weightMode: string,
+  throughDay: string
+): Map<string, number> {
+  const out = new Map<string, number>();
+  if (!deviceIds.length) return out;
+
+  const idSet = new Set(deviceIds);
+  for (const id of deviceIds) out.set(id, 0);
+
+  const rows = getDb()
+    .prepare(
+      `SELECT device_id, COUNT(DISTINCT day) AS c
+       FROM index_constituents
+       WHERE n = ? AND weight_mode = ? AND day <= ?
+       GROUP BY device_id`
+    )
+    .all(n, weightMode, throughDay) as { device_id: string; c: number }[];
+
+  for (const r of rows) {
+    if (idSet.has(r.device_id)) out.set(r.device_id, r.c);
+  }
+  return out;
+}
+
+/**
+ * Consecutive days ending at `throughDay` that the device stayed in the index.
+ * Walks backward from throughDay using stored days only.
+ */
+export function getStreakByDevice(
+  deviceIds: string[],
+  n: number,
+  weightMode: string,
+  throughDay: string
+): Map<string, number> {
+  const out = new Map<string, number>();
+  if (!deviceIds.length) return out;
+
+  const days = getDb()
+    .prepare(
+      `SELECT DISTINCT day FROM index_constituents
+       WHERE n = ? AND weight_mode = ? AND day <= ?
+       ORDER BY day DESC`
+    )
+    .all(n, weightMode, throughDay) as { day: string }[];
+
+  if (!days.length) return out;
+
+  const presence = new Map<string, Set<string>>();
+  for (const id of deviceIds) presence.set(id, new Set());
+
+  const idSet = new Set(deviceIds);
+  const rows = getDb()
+    .prepare(
+      `SELECT day, device_id FROM index_constituents
+       WHERE n = ? AND weight_mode = ? AND day <= ?`
+    )
+    .all(n, weightMode, throughDay) as { day: string; device_id: string }[];
+
+  for (const r of rows) {
+    if (!idSet.has(r.device_id)) continue;
+    presence.get(r.device_id)!.add(r.day);
+  }
+
+  for (const id of deviceIds) {
+    const set = presence.get(id)!;
+    let streak = 0;
+    for (const d of days) {
+      if (!set.has(d.day)) break;
+      streak++;
+    }
+    out.set(id, streak);
+  }
+  return out;
 }
 
 export function hasConstituentsForDay(

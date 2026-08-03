@@ -6,11 +6,15 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
-    "rebuild": "node --env-file=.env --import tsx scripts/rebuild-once.ts"
+    "rebuild": "node --env-file=.env --import tsx scripts/rebuild-once.ts",
+    "backfill:names": "node --env-file=.env --import tsx scripts/backfill-entity-names.ts"
   },
   "dependencies": {
+    "@solana/web3.js": "^1.98.4",
     "better-sqlite3": "^11.8.1",
+    "bs58": "^6.0.0",
     "chart.js": "^4.4.7",
+    "js-sha256": "^1.0.0",
     "next": "^15.1.0",
     "node-cron": "^3.0.3",
     "react": "^19.0.0",
